@@ -1,0 +1,87 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+Ang	constants.f90	/^  real(kind=dp),  parameter, public ::  Ang /;"	v	module:constants
+append	regex.f90	/^  function append(/;"	f	module:regex
+c	regex.f90	/^    integer               ::  c$/;"	k	type:state
+c_0	constants.f90	/^  complex(kind=sp), parameter,  public  ::  c_0 /;"	v	module:constants
+c_1	constants.f90	/^  complex(kind=sp), parameter,  public  ::  c_1 /;"	v	module:constants
+c_i	constants.f90	/^  complex(kind=sp), parameter,  public  ::  c_i /;"	v	module:constants
+callstack	trace.f90	/^  type(routine), pointer, save  ::  callstack$/;"	v	module:trace
+constants	constants.f90	/^module constants$/;"	m
+current_sub	trace.f90	/^  character(len=64),  public, save  ::  current_sub$/;"	v	module:trace
+dp	constants.f90	/^  integer,          parameter,  public  ::  dp /;"	v	module:constants
+eV	constants.f90	/^  real(kind=dp),  parameter, public ::  eV /;"	v	module:constants
+elem	regex.f90	/^    type(frag), pointer ::  elem$/;"	k	type:frag_stack
+end_time	trace.f90	/^    real(kind=dp)           ::  end_time$/;"	k	type:routine
+eul_c	constants.f90	/^  real(kind=dp),     parameter,  public  ::  eul_c /;"	v	module:constants
+frag	regex.f90	/^  type  :: frag$/;"	t	module:regex
+frag_stack	regex.f90	/^  type  :: frag_stack$/;"	t	module:regex
+id	trace.f90	/^    character(len=64)       ::  id$/;"	k	type:routine
+in_Ang	constants.f90	/^  real(kind=dp),  parameter, public ::  in_Ang=/;"	v	module:constants
+in_eV	constants.f90	/^  real(kind=dp),  parameter, public ::  in_eV /;"	v	module:constants
+io	io.f90	/^module io$/;"	m
+io_abort	io.f90	/^    subroutine io_abort(/;"	s	module:io
+io_allocate_abort	io.f90	/^    subroutine io_allocate_abort(/;"	s	module:io
+io_close	io.f90	/^    subroutine io_close(/;"	s	module:io
+io_deallocate_abort	io.f90	/^    subroutine io_deallocate_abort(/;"	s	module:io
+io_initialise	io.f90	/^    subroutine io_initialise(/;"	s	module:io
+io_initialised	io.f90	/^  logical,  public  ::  io_initialised /;"	v	module:io
+io_open	io.f90	/^    function io_open(/;"	f	module:io
+io_warn	io.f90	/^    subroutine io_warn(/;"	s	module:io
+lastlist	regex.f90	/^    integer               ::  lastlist$/;"	k	type:state
+match	regex.f90	/^  integer,  parameter ::  match /;"	v	module:regex
+n_states	regex.f90	/^  integer :: n_states /;"	v	module:regex
+new_frag	regex.f90	/^  function new_frag(/;"	f	module:regex
+new_list	regex.f90	/^  function new_list(/;"	f	module:regex
+new_state	regex.f90	/^  function new_state(/;"	f	module:regex
+next	regex.f90	/^    type(ptr_list), pointer ::  next /;"	k	type:ptr_list
+next	regex.f90	/^  type(state), pointer  ::  next$/;"	v	program:re_test
+next	trace.f90	/^    type(routine), pointer  ::  next$/;"	k	type:routine
+num_calls	trace.f90	/^    integer                 ::  num_calls$/;"	k	type:routine
+out1	regex.f90	/^    type(ptr_list), pointer ::  out1 /;"	k	type:frag
+out1	regex.f90	/^    type(state),  pointer ::  out1 /;"	k	type:state
+out2	regex.f90	/^    type(state),  pointer ::  out2 /;"	k	type:state
+patch	regex.f90	/^  subroutine patch(/;"	s	module:regex
+pi	constants.f90	/^  real(kind=dp),    parameter,  public  ::  pi /;"	v	module:constants
+pop	regex.f90	/^    function pop(/;"	f	function:post_to_nfa
+post_to_nfa	regex.f90	/^  function post_to_nfa(/;"	f	module:regex
+print_state	regex.f90	/^  recursive subroutine print_state(/;"	s	module:regex
+ptr_list	regex.f90	/^  type  :: ptr_list$/;"	t	module:regex
+push	regex.f90	/^    subroutine push(/;"	s	function:post_to_nfa
+re_test	regex.f90	/^program re_test$/;"	p
+regex	regex.f90	/^module regex$/;"	m
+routine	trace.f90	/^  type routine$/;"	t	module:trace
+routine_allocate	trace.f90	/^    subroutine routine_allocate(/;"	s	module:trace
+s	regex.f90	/^    type(st/;"	k	type:ptr_list
+s	regex.f90	/^  type(st/;"	v	program:re_test
+side	regex.f90	/^    integer                 ::  side /;"	k	type:ptr_list
+sort_list	trace.f90	/^    subroutine sort_list(/;"	s	subroutine:trace_output
+sp	constants.f90	/^  integer,          parameter,  public  ::  sp /;"	v	module:constants
+split	regex.f90	/^  integer,  parameter ::  split /;"	v	module:regex
+start	regex.f90	/^    type(state),    pointer ::  start /;"	k	type:frag
+start_time	trace.f90	/^    real(kind=dp)           ::  start_time$/;"	k	type:routine
+state	regex.f90	/^  type, public  :: state$/;"	t	module:regex
+stderr	io.f90	/^  integer,  public  ::  stderr$/;"	v	module:io
+stdout	io.f90	/^  integer,  public  ::  stdout$/;"	v	module:io
+times	trace.f90	/^  type(routine), pointer, save  ::  times$/;"	v	module:trace
+total_time	trace.f90	/^    real(kind=dp)           ::  total_time$/;"	k	type:routine
+trace	trace.f90	/^module trace$/;"	m
+trace_enabled	trace.f90	/^  logical,                save  ::  trace_enabled /;"	v	module:trace
+trace_entry	trace.f90	/^    subroutine trace_entry(/;"	s	module:trace
+trace_exit	trace.f90	/^    subroutine trace_exit(/;"	s	module:trace
+trace_finalise	trace.f90	/^    subroutine trace_finalise(/;"	s	module:trace
+trace_initialise	trace.f90	/^    subroutine trace_initialise(/;"	s	module:trace
+trace_output	trace.f90	/^    subroutine trace_output(/;"	s	module:trace
+trace_start	trace.f90	/^  real(kind=dp),          save  ::  trace_time, trace_start$/;"	v	module:trace
+trace_time	trace.f90	/^  real(kind=dp),          save  ::  trace_time,/;"	v	module:trace
+trace_timer	trace.f90	/^  real(kind=dp) function trace_timer(/;"	f	module:trace
+trace_timings	trace.f90	/^  logical,                save  ::  trace_timings /;"	v	module:trace
+trace_write_callstack	trace.f90	/^    subroutine trace_write_callstack(/;"	s	module:trace
+twopi	constants.f90	/^  real(kind=dp),    parameter,  public  ::  twopi /;"	v	module:constants
+z_0	constants.f90	/^  complex(kind=dp), parameter,  public  ::  z_0 /;"	v	module:constants
+z_1	constants.f90	/^  complex(kind=dp), parameter,  public  ::  z_1 /;"	v	module:constants
+z_i	constants.f90	/^  complex(kind=dp), parameter,  public  ::  z_i /;"	v	module:constants

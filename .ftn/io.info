@@ -1,0 +1,6 @@
+module io
+    use ISO_FORTRAN_ENV, only:  OUTPUT_UNIT, ERROR_UNIT
+    use trace, only:  trace_write_callstack, trace_output
+    use trace, only:  trace_write_callstack
+    use trace, only:  trace_write_callstack
+    use trace,  only: current_sub
