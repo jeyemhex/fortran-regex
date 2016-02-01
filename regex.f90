@@ -59,7 +59,6 @@ contains
     new_frag%start => s
     new_frag%out1  => l
 
-    print *, "making new frag at", loc(new_frag), "with state", loc(s),"and list", loc(l)
 
   end function new_frag
 
@@ -74,8 +73,6 @@ contains
     local_depth=0
     if(present(depth)) then 
       local_depth = depth
-    else
-      print *, "Printing state", loc(s)
     end if
 
     if(local_depth > 8) then 
@@ -106,8 +103,6 @@ contains
     new_list%side = side
     new_list%next => null()
 
-    print *, "making new list at", loc(new_list), "with state", loc(outp)
-
   end function new_list
 
   function append(l1, l2)
@@ -115,7 +110,6 @@ contains
     type(ptr_list), pointer,  intent(inout) :: l1
     type(ptr_list), pointer,  intent(in)    :: l2
 
-    print *, "Appending list", loc(l1),"to",loc(l2)
     append => l1
     do while( associated(l1%next) )
       l1 => l1%next
@@ -132,9 +126,7 @@ contains
     type(ptr_list), pointer :: tmp_l
 
     tmp_l => l
-    print *, "Patching list", loc(tmp_l), "with state", loc(s)
     do while( associated(tmp_l) )
-      print *, "  patching state", loc(tmp_l%s)
       select case(tmp_l%side)
         case(1)
           tmp_l%s%out1 => s
@@ -164,9 +156,7 @@ contains
 
     allocate(matchstate, nullstate)
     matchstate = new_state(match, null(), null())
-    print *, "making match state at", loc(matchstate), "with character", match
     nullstate = new_state(0, null(), null())
-    print *, "making null state at", loc(nullstate), "with character", 0
     stack_p => stack(1)%elem
     ch_loc  = 1
     s_loc   = 1
@@ -176,7 +166,6 @@ contains
     if(associated(post_to_nfa)) call io_abort("post_to_nfa already associated")
 
     do while( ch_loc <= len(trim(postfix)) )
-      print *, "Found " // postfix(ch_loc:ch_loc)
       s => null()
       select case( postfix(ch_loc:ch_loc) )
 
@@ -184,8 +173,6 @@ contains
           e2 => pop()
           e1 => pop()
           call patch(e1%out1, e2%start)
-          print *, "State being pushed"
-          call print_state( e1%start )
           call push(new_frag(e1%start, e2%out1))
           e1 => null()
           e2 => null()
@@ -195,7 +182,6 @@ contains
           e1 => pop()
           allocate(s)
           s = new_state( split, e1%start, e2%start )
-          print *, "making new state at", loc(s), "with character", split
           call push( new_frag(s, append(e1%out1, e2%out1)) )
           s => null()
           e1 => null()
@@ -205,7 +191,6 @@ contains
           e => pop()
           allocate(s)
           s = new_state( split, e%start, nullstate )
-          print *, "making new state at", loc(s), "with character", split
           call push( new_frag(s, append(e%out1, new_list(s, 2)))  )
           s => null()
           e => null()
@@ -214,7 +199,6 @@ contains
           e => pop()
           allocate(s)
           s = new_state( split, e%start, nullstate )
-          print *, "making new state at", loc(s), "with character", split
           call patch(e%out1, s)
           call push( new_frag(s, new_list(s, 2))  )
           s => null()
@@ -224,7 +208,6 @@ contains
           e => pop()
           allocate(s)
           s = new_state( split, e%start, nullstate )
-          print *, "making new state at", loc(s), "with character", split
           call patch(e%out1, s)
           call push( new_frag(e%start, new_list(s, 2))  )
           s => null()
@@ -233,7 +216,6 @@ contains
         case default
           allocate(s)
           s = new_state( iachar(postfix(ch_loc:ch_loc)), nullstate, nullstate )
-          print *, "making new state at", loc(s), "with character", iachar(postfix(ch_loc:ch_loc))
           call push( new_frag(s, new_list(s, 1)) )
           s => null()
           e => null()
@@ -259,8 +241,6 @@ contains
 
       s_loc = s_loc + 1
       stack(s_loc)%elem => f
-      print *, "Pushing", loc(f),"to stack"
-      print *, "s_loc is now", s_loc
 
     end subroutine push
 
@@ -268,9 +248,7 @@ contains
       type(frag), pointer :: pop
 
       pop => stack(s_loc)%elem
-      print *, "Popped", loc(pop),"from stack"
       s_loc = s_loc - 1
-      print *, "s_loc is now", s_loc
 
     end function pop
 
@@ -280,12 +258,16 @@ end module regex
 
 program re_test
   use regex
+  use io, only: io_initialise
   implicit none
 
   type(state), pointer ::  s
   type(state), pointer  ::  next
+  character(len=120) :: postfix
 
-  s => post_to_nfa("a+a.")
+  call io_initialise(postfix)
+
+  s => post_to_nfa(postfix)
   call print_state(s)
 
 end program re_test

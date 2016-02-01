@@ -2,3 +2,4 @@ module regex
 program re_test
   use io, only: io_abort, io_allocate_abort
   use regex
+  use io, only: io_initialise
