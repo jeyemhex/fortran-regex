@@ -34,31 +34,34 @@ io_open	io.f90	/^    function io_open(/;"	f	module:io
 io_warn	io.f90	/^    subroutine io_warn(/;"	s	module:io
 lastlist	regex.f90	/^    integer               ::  lastlist$/;"	k	type:state
 match	regex.f90	/^  integer,  parameter ::  match /;"	v	module:regex
+n_alt	regex.f90	/^    integer ::  n_alt$/;"	k	type:paren_list
+n_atom	regex.f90	/^    integer ::  n_atom$/;"	k	type:paren_list
 n_states	regex.f90	/^  integer :: n_states /;"	v	module:regex
 new_frag	regex.f90	/^  function new_frag(/;"	f	module:regex
 new_list	regex.f90	/^  function new_list(/;"	f	module:regex
 new_state	regex.f90	/^  function new_state(/;"	f	module:regex
 next	regex.f90	/^    type(ptr_list), pointer ::  next /;"	k	type:ptr_list
-next	regex.f90	/^  type(state), pointer  ::  next$/;"	v	program:re_test
 next	trace.f90	/^    type(routine), pointer  ::  next$/;"	k	type:routine
 num_calls	trace.f90	/^    integer                 ::  num_calls$/;"	k	type:routine
 out1	regex.f90	/^    type(ptr_list), pointer ::  out1 /;"	k	type:frag
 out1	regex.f90	/^    type(state),  pointer ::  out1 /;"	k	type:state
 out2	regex.f90	/^    type(state),  pointer ::  out2 /;"	k	type:state
+paren_list	regex.f90	/^  type  ::  paren_list$/;"	t	module:regex
 patch	regex.f90	/^  subroutine patch(/;"	s	module:regex
 pi	constants.f90	/^  real(kind=dp),    parameter,  public  ::  pi /;"	v	module:constants
 pop	regex.f90	/^    function pop(/;"	f	function:post_to_nfa
 post_to_nfa	regex.f90	/^  function post_to_nfa(/;"	f	module:regex
+postfix_buff_size	regex.f90	/^  integer,  parameter , public ::  postfix_buff_size /;"	v	module:regex
 print_state	regex.f90	/^  recursive subroutine print_state(/;"	s	module:regex
 ptr_list	regex.f90	/^  type  :: ptr_list$/;"	t	module:regex
 push	regex.f90	/^    subroutine push(/;"	s	function:post_to_nfa
-re_test	regex.f90	/^program re_test$/;"	p
+re_to_post	regex.f90	/^  function re_to_post(/;"	f	module:regex
 regex	regex.f90	/^module regex$/;"	m
 routine	trace.f90	/^  type routine$/;"	t	module:trace
 routine_allocate	trace.f90	/^    subroutine routine_allocate(/;"	s	module:trace
 s	regex.f90	/^    type(st/;"	k	type:ptr_list
-s	regex.f90	/^  type(st/;"	v	program:re_test
 side	regex.f90	/^    integer                 ::  side /;"	k	type:ptr_list
+simulate	regex.f90	/^  recursive function simulate(/;"	f	module:regex
 sort_list	trace.f90	/^    subroutine sort_list(/;"	s	subroutine:trace_output
 sp	constants.f90	/^  integer,          parameter,  public  ::  sp /;"	v	module:constants
 split	regex.f90	/^  integer,  parameter ::  split /;"	v	module:regex

@@ -5,10 +5,16 @@ module regex
 
   private
 
-  public :: post_to_nfa, print_state
+  public :: re_match
 
   integer,  parameter ::  split = 256
   integer,  parameter ::  match = 257
+  integer,  parameter , public ::  postfix_buff_size = 8000
+
+  type  ::  paren_list
+    integer ::  n_atom
+    integer ::  n_alt
+  end type paren_list
 
   type, public  :: state
     integer               ::  c
@@ -75,14 +81,22 @@ contains
       local_depth = depth
     end if
 
-    if(local_depth > 8) then 
+    if(local_depth > 16) then 
       print *, "Trying to print a superdeep structure!"
     else
       tmp_s => s
       do i = 1, local_depth
-        write(*,'(A2)', advance="no") "  "
+        write(*,'(A3)', advance="no") "|  "
       end do
-      print *, "State:", tmp_s%c
+      if(tmp_s%c == 0) then
+        write(*,'(A7,A4)'), "State: ","NULL"
+      else if(tmp_s%c == 256) then
+        write(*,'(A7,A5)'), "State: ", "SPLIT"
+      else if(tmp_s%c == 257) then
+        write(*,'(A7,A5)'), "State: ", "MATCH"
+      else
+        write(*,'(A7,A4)'), "State: ", achar(tmp_s%c) // "   "
+      end if
       if(associated(tmp_s%out1)) call print_state(tmp_s%out1, depth=local_depth+1)
       if(associated(tmp_s%out2)) call print_state(tmp_s%out2, depth=local_depth+1)
     end if
@@ -140,6 +154,110 @@ contains
 
   end subroutine patch
 
+  function re_to_post(re) result(pf)
+    character(len=postfix_buff_size) :: pf
+    character(len=*),   intent(in)  ::  re
+
+    integer          :: n_alt, n_atom
+    integer          :: re_loc, pf_loc
+    type(paren_list) :: paren(100)
+    integer          :: par_loc
+
+    par_loc = 1
+    re_loc  = 1
+    pf_loc  = 1
+    n_alt   = 0
+    n_atom  = 0
+
+    pf = " "
+
+    if(len_trim(re) > postfix_buff_size/2) call io_abort("Regex too long!")
+    do while(re_loc <= len_trim(re))
+      select case(re(re_loc:re_loc))
+
+        case('(')
+          if(n_atom > 1) then
+            n_atom = n_atom - 1
+            pf(pf_loc:pf_loc) = "."
+            pf_loc = pf_loc + 1
+          end if
+          if(par_loc > size(paren)) call io_abort("Too many embedded brackets!")
+          paren(par_loc)%n_alt  = n_alt
+          paren(par_loc)%n_atom = n_atom
+          par_loc = par_loc + 1
+          n_alt   = 0
+          n_atom  = 0
+
+        case('|')
+          if(n_atom == 0) call io_abort("N_atom is 0. Apparently that's a bad thing...")
+
+          n_atom = n_atom - 1
+          do while(n_atom > 0)
+            pf(pf_loc:pf_loc) = "."
+            pf_loc = pf_loc + 1
+            n_atom = n_atom - 1
+          end do
+          n_alt = n_alt + 1
+
+        case (')')
+          if(par_loc == 1) call io_abort("I think you have an unmatched paren? maybe?")
+          if(n_atom == 0) call io_abort("N_atom is 0. Apparently that's a bad thing...")
+
+          n_atom = n_atom - 1
+          do while(n_atom > 0)
+            pf(pf_loc:pf_loc) = "."
+            pf_loc = pf_loc + 1
+            n_atom = n_atom - 1
+          end do
+
+          do while(n_alt > 0)
+            pf(pf_loc:pf_loc) = "|"
+            pf_loc = pf_loc + 1
+            n_alt = n_alt - 1
+          end do
+
+          par_loc = par_loc - 1
+          n_alt = paren(par_loc)%n_alt
+          n_atom = paren(par_loc)%n_atom
+          n_atom = n_atom + 1
+
+        case('*','+','?')
+          if(n_atom == 0) call io_abort("N_atom is 0. Apparently that's a bad thing...")
+          pf(pf_loc:pf_loc) = re(re_loc:re_loc)
+          pf_loc = pf_loc + 1
+
+        case default
+          if(n_atom > 1) then
+            n_atom = n_atom - 1
+            pf(pf_loc:pf_loc) = "."
+            pf_loc = pf_loc + 1
+          end if
+          pf(pf_loc:pf_loc) = re(re_loc:re_loc)
+          pf_loc = pf_loc + 1
+          n_atom = n_atom + 1
+
+      end select
+      re_loc = re_loc + 1
+
+    end do
+
+    if(par_loc /= 1) call io_abort("I think you've got unmatched parentheses")
+
+    n_atom = n_atom - 1
+    do while(n_atom > 0)
+      pf(pf_loc:pf_loc) = "."
+      pf_loc = pf_loc + 1
+      n_atom = n_atom - 1
+    end do
+
+    do while(n_alt > 0)
+      pf(pf_loc:pf_loc) = "|"
+      pf_loc = pf_loc + 1
+      n_alt = n_alt - 1
+    end do
+
+  end function re_to_post
+
   function post_to_nfa(postfix)
     type(state), pointer  ::  post_to_nfa
     character(len=*), intent(in)  ::  postfix
@@ -165,7 +283,7 @@ contains
     nullloc = loc(nullstate)
     if(associated(post_to_nfa)) call io_abort("post_to_nfa already associated")
 
-    do while( ch_loc <= len(trim(postfix)) )
+    do while( ch_loc <= len_trim(postfix))
       s => null()
       select case( postfix(ch_loc:ch_loc) )
 
@@ -231,8 +349,8 @@ contains
 
     post_to_nfa => e%start
 
-    if(matchstate%c /= match) print *, "***** Matchstate has changed!", matchstate%c
-    if(nullstate%c /= 0) print *, "***** Nullstate has changed!", nullstate%c
+    if(matchstate%c /= match) call io_abort("***** Matchstate has changed!")
+    if(nullstate%c /= 0) call io_abort("***** Nullstate has changed!")
     e => null()
   contains
 
@@ -254,6 +372,60 @@ contains
 
   end function post_to_nfa
 
+  recursive function simulate(nfa, str) result(res)
+    logical :: res
+    type(state),      intent(in)  ::  nfa
+    character(len=*), intent(in)  ::  str
+
+    select case (nfa%c)
+
+      case (match)
+        res = .true.
+
+      case (0)
+        res = .false.
+
+      case(split)
+        if((nfa%out1%c == match) .or. (nfa%out2%c == match)) then
+          res = .true.
+        else if( simulate(nfa%out1, trim(str)) )  then
+          res = .true.
+        else if( simulate(nfa%out2, trim(str)) ) then
+          res = .true.
+        else
+          res = .false.
+        end if
+
+      case default
+        if( nfa%c == iachar(str(1:1)) ) then
+            if(len_trim(str) > 1) then
+              res = simulate(nfa%out1, str(2:))
+            else
+              res = simulate(nfa%out1, str)
+            end if
+        else
+          res = .false.
+        end if
+
+    end select
+
+    return
+  end function simulate
+
+  function re_match(re, str)
+    logical :: re_match
+    character(len=*), intent(in)  ::  re
+    character(len=*), intent(in)  ::  str
+
+    character(len=postfix_buff_size)  ::  postfix
+    type(state),  pointer             ::  nfa
+
+    postfix = re_to_post(trim(re))
+    nfa => post_to_nfa(postfix)
+    re_match = simulate(nfa, trim(str))
+
+  end function re_match
+
 end module regex
 
 program re_test
@@ -263,11 +435,17 @@ program re_test
 
   type(state), pointer ::  s
   type(state), pointer  ::  next
-  character(len=120) :: postfix
+  character(len=120), allocatable :: args(:)
+  character(len=120) :: re, str
 
-  call io_initialise(postfix)
+  call io_initialise(args = args)
+  re = args(1)
+  str = args(2)
 
-  s => post_to_nfa(postfix)
-  call print_state(s)
+  print *, "String:  ", trim(str)
+
+  print *, "Regex:   ", trim(re)
+
+  print *, "Match:  ", re_match(re, str)
 
 end program re_test
