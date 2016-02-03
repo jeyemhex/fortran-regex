@@ -5,12 +5,17 @@
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
 Ang	constants.f90	/^  real(kind=dp),  parameter, public ::  Ang /;"	v	module:constants
+add_state	regex.f90	/^    recursive subroutine add_state(/;"	s	function:run_nfa
+alpha_ch	regex.f90	/^  integer,  parameter ::  alpha_ch /;"	v	module:regex
+any_ch	regex.f90	/^  integer,  parameter ::  any_ch /;"	v	module:regex
 append	regex.f90	/^  function append(/;"	f	module:regex
+args	regex.f90	/^  character(len=120), allocatable :: args(/;"	v	program:re_test
 c	regex.f90	/^    integer               ::  c$/;"	k	type:state
 c_0	constants.f90	/^  complex(kind=sp), parameter,  public  ::  c_0 /;"	v	module:constants
 c_1	constants.f90	/^  complex(kind=sp), parameter,  public  ::  c_1 /;"	v	module:constants
 c_i	constants.f90	/^  complex(kind=sp), parameter,  public  ::  c_i /;"	v	module:constants
 callstack	trace.f90	/^  type(routine), pointer, save  ::  callstack$/;"	v	module:trace
+cat_op	regex.f90	/^  integer,  parameter ::  cat_op /;"	v	module:regex
 constants	constants.f90	/^module constants$/;"	m
 current_sub	trace.f90	/^  character(len=64),  public, save  ::  current_sub$/;"	v	module:trace
 dp	constants.f90	/^  integer,          parameter,  public  ::  dp /;"	v	module:constants
@@ -18,6 +23,7 @@ eV	constants.f90	/^  real(kind=dp),  parameter, public ::  eV /;"	v	module:const
 elem	regex.f90	/^    type(frag), pointer ::  elem$/;"	k	type:frag_stack
 end_time	trace.f90	/^    real(kind=dp)           ::  end_time$/;"	k	type:routine
 eul_c	constants.f90	/^  real(kind=dp),     parameter,  public  ::  eul_c /;"	v	module:constants
+finish_ch	regex.f90	/^  integer,  parameter ::  finish_ch /;"	v	module:regex
 frag	regex.f90	/^  type  :: frag$/;"	t	module:regex
 frag_stack	regex.f90	/^  type  :: frag_stack$/;"	t	module:regex
 id	trace.f90	/^    character(len=64)       ::  id$/;"	k	type:routine
@@ -32,44 +38,68 @@ io_initialise	io.f90	/^    subroutine io_initialise(/;"	s	module:io
 io_initialised	io.f90	/^  logical,  public  ::  io_initialised /;"	v	module:io
 io_open	io.f90	/^    function io_open(/;"	f	module:io
 io_warn	io.f90	/^    subroutine io_warn(/;"	s	module:io
-lastlist	regex.f90	/^    integer               ::  lastlist$/;"	k	type:state
-match	regex.f90	/^  integer,  parameter ::  match /;"	v	module:regex
+is_match	regex.f90	/^    function is_match(/;"	f	function:run_nfa
+last_list	regex.f90	/^    integer               ::  last_list$/;"	k	type:state
+list	regex.f90	/^    type  ::  list$/;"	t	function:run_nfa
+match_st	regex.f90	/^  integer,  parameter ::  match_st /;"	v	module:regex
+n_alpha_ch	regex.f90	/^  integer,  parameter ::  n_alpha_ch /;"	v	module:regex
 n_alt	regex.f90	/^    integer ::  n_alt$/;"	k	type:paren_list
 n_atom	regex.f90	/^    integer ::  n_atom$/;"	k	type:paren_list
-n_states	regex.f90	/^  integer :: n_states /;"	v	module:regex
+n_numeric_ch	regex.f90	/^  integer,  parameter ::  n_numeric_ch /;"	v	module:regex
+n_space_ch	regex.f90	/^  integer,  parameter ::  n_space_ch /;"	v	module:regex
+n_states	regex.f90	/^  integer :: n_states$/;"	v	module:regex
+n_word_ch	regex.f90	/^  integer,  parameter ::  n_word_ch /;"	v	module:regex
 new_frag	regex.f90	/^  function new_frag(/;"	f	module:regex
 new_list	regex.f90	/^  function new_list(/;"	f	module:regex
 new_state	regex.f90	/^  function new_state(/;"	f	module:regex
 next	regex.f90	/^    type(ptr_list), pointer ::  next /;"	k	type:ptr_list
+next	regex.f90	/^  type(state), pointer  ::  next$/;"	v	program:re_test
 next	trace.f90	/^    type(routine), pointer  ::  next$/;"	k	type:routine
+null_st	regex.f90	/^  integer,  parameter ::  null_st /;"	v	module:regex
 num_calls	trace.f90	/^    integer                 ::  num_calls$/;"	k	type:routine
+numeric_ch	regex.f90	/^  integer,  parameter ::  numeric_ch /;"	v	module:regex
+or_op	regex.f90	/^  integer,  parameter ::  or_op /;"	v	module:regex
 out1	regex.f90	/^    type(ptr_list), pointer ::  out1 /;"	k	type:frag
 out1	regex.f90	/^    type(state),  pointer ::  out1 /;"	k	type:state
 out2	regex.f90	/^    type(state),  pointer ::  out2 /;"	k	type:state
 paren_list	regex.f90	/^  type  ::  paren_list$/;"	t	module:regex
 patch	regex.f90	/^  subroutine patch(/;"	s	module:regex
+pf_buff_size	regex.f90	/^  integer,  parameter ::  pf_buff_size /;"	v	module:regex
 pi	constants.f90	/^  real(kind=dp),    parameter,  public  ::  pi /;"	v	module:constants
+plus_op	regex.f90	/^  integer,  parameter ::  plus_op /;"	v	module:regex
 pop	regex.f90	/^    function pop(/;"	f	function:post_to_nfa
 post_to_nfa	regex.f90	/^  function post_to_nfa(/;"	f	module:regex
-postfix_buff_size	regex.f90	/^  integer,  parameter , public ::  postfix_buff_size /;"	v	module:regex
 print_state	regex.f90	/^  recursive subroutine print_state(/;"	s	module:regex
 ptr_list	regex.f90	/^  type  :: ptr_list$/;"	t	module:regex
 push	regex.f90	/^    subroutine push(/;"	s	function:post_to_nfa
+quest_op	regex.f90	/^  integer,  parameter ::  quest_op /;"	v	module:regex
+re	regex.f90	/^  character(len=120) :: re,/;"	v	program:re_test
+re_match_logical	regex.f90	/^  function re_match_logical(/;"	f	module:regex
+re_number	regex.f90	/^  character(len=120) :: re_number$/;"	v	program:re_test
+re_test	regex.f90	/^program re_test$/;"	p
 re_to_post	regex.f90	/^  function re_to_post(/;"	f	module:regex
 regex	regex.f90	/^module regex$/;"	m
 routine	trace.f90	/^  type routine$/;"	t	module:trace
 routine_allocate	trace.f90	/^    subroutine routine_allocate(/;"	s	module:trace
+run_nfa	regex.f90	/^  function run_nfa(/;"	f	module:regex
+s	regex.f90	/^      type(st/;"	k	type:list
 s	regex.f90	/^    type(st/;"	k	type:ptr_list
+s	regex.f90	/^  type(st/;"	v	program:re_test
 side	regex.f90	/^    integer                 ::  side /;"	k	type:ptr_list
-simulate	regex.f90	/^  recursive function simulate(/;"	f	module:regex
 sort_list	trace.f90	/^    subroutine sort_list(/;"	s	subroutine:trace_output
 sp	constants.f90	/^  integer,          parameter,  public  ::  sp /;"	v	module:constants
-split	regex.f90	/^  integer,  parameter ::  split /;"	v	module:regex
+space_ch	regex.f90	/^  integer,  parameter ::  space_ch /;"	v	module:regex
+split_st	regex.f90	/^  integer,  parameter ::  split_st /;"	v	module:regex
+star_op	regex.f90	/^  integer,  parameter ::  star_op /;"	v	module:regex
 start	regex.f90	/^    type(state),    pointer ::  start /;"	k	type:frag
+start_ch	regex.f90	/^  integer,  parameter ::  start_ch /;"	v	module:regex
+start_list	regex.f90	/^    function start_list(/;"	f	function:run_nfa
 start_time	trace.f90	/^    real(kind=dp)           ::  start_time$/;"	k	type:routine
 state	regex.f90	/^  type, public  :: state$/;"	t	module:regex
 stderr	io.f90	/^  integer,  public  ::  stderr$/;"	v	module:io
 stdout	io.f90	/^  integer,  public  ::  stdout$/;"	v	module:io
+step	regex.f90	/^    subroutine step(/;"	s	function:run_nfa
+str	regex.f90	/^  character(len=120) :: re, str$/;"	v	program:re_test
 times	trace.f90	/^  type(routine), pointer, save  ::  times$/;"	v	module:trace
 total_time	trace.f90	/^    real(kind=dp)           ::  total_time$/;"	k	type:routine
 trace	trace.f90	/^module trace$/;"	m
@@ -85,6 +115,7 @@ trace_timer	trace.f90	/^  real(kind=dp) function trace_timer(/;"	f	module:trace
 trace_timings	trace.f90	/^  logical,                save  ::  trace_timings /;"	v	module:trace
 trace_write_callstack	trace.f90	/^    subroutine trace_write_callstack(/;"	s	module:trace
 twopi	constants.f90	/^  real(kind=dp),    parameter,  public  ::  twopi /;"	v	module:constants
+word_ch	regex.f90	/^  integer,  parameter ::  word_ch /;"	v	module:regex
 z_0	constants.f90	/^  complex(kind=dp), parameter,  public  ::  z_0 /;"	v	module:constants
 z_1	constants.f90	/^  complex(kind=dp), parameter,  public  ::  z_1 /;"	v	module:constants
 z_i	constants.f90	/^  complex(kind=dp), parameter,  public  ::  z_i /;"	v	module:constants
