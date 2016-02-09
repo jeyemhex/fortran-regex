@@ -18,11 +18,7 @@ module regex
 
   private
 
-  public :: re_match
-
-  interface re_match
-    module procedure re_match_logical
-  end interface re_match
+  public :: re_match, re_match_str!, re_split
 
   integer,  parameter ::  pf_buff_size = 8000
 
@@ -61,6 +57,7 @@ module regex
     type(state),  pointer ::  out1 => null()
     type(state),  pointer ::  out2 => null()
     integer               ::  last_list
+    logical               ::  head = .false.
   end type state
 
   type  :: ptr_list
@@ -80,21 +77,8 @@ module regex
 
   integer :: n_states
 
+
 contains
-
-  function new_state(c, out1, out2)
-    type(state)  ::  new_state
-    integer,                intent(in)  ::  c
-    type(state),  pointer,  intent(in)  ::  out1, out2
-
-    n_states = n_states + 1
-    new_state%last_list = 0
-    new_state%c = c
-    new_state%out1 => out1
-    new_state%out2 => out2
-
-
-  end function new_state
 
   function new_frag(s, l)
     type(frag), pointer ::  new_frag
@@ -108,6 +92,49 @@ contains
 
   end function new_frag
 
+  subroutine print_pf(pf)
+    integer,  intent(in)  ::  pf(:)
+
+    integer ::  i
+
+    print_loop: do i = 1, size(pf)
+      select case(pf(i))
+        case(null_st)
+          exit print_loop
+        case(1:255)
+          write(*,'(A7,A4)'), achar(pf(i)) // "   "
+        case(split_st)
+          write(*,'(A7,A5)'), "SPLIT"
+        case(match_st)
+          write(*,'(A7,A5)'), "MATCH"
+        case(any_ch)
+          write(*,'(A7,A5)'), ".    "
+        case(start_ch)
+          write(*,'(A7,A5)'), "START"
+        case(finish_ch)
+          write(*,'(A7,A5)'), "FIN  "
+        case(alpha_ch)
+          write(*,'(A7,A5)'), "\a   "
+        case(numeric_ch)
+          write(*,'(A7,A5)'), "\d   "
+        case(word_ch)
+          write(*,'(A7,A5)'), "\w   "
+        case(space_ch)
+          write(*,'(A7,A5)'), "\s   "
+        case(n_alpha_ch)
+          write(*,'(A7,A5)'), "\A   "
+        case(n_numeric_ch)
+          write(*,'(A7,A5)'), "\D   "
+        case(n_word_ch)
+          write(*,'(A7,A5)'), "\W   "
+        case(n_space_ch)
+          write(*,'(A7,A5)'), "\S   "
+        case default
+          stop "Unrecognised character in print_state"
+      end select
+    end do print_loop
+  end subroutine print_pf
+  
   recursive subroutine print_state(s, depth)
     type(state), pointer, intent(in) ::  s
     integer,  optional,   intent(in) :: depth
@@ -130,7 +157,7 @@ contains
           write(*,'(A3)', advance="no") "|  "
         end do
         select case (tmp_s%c)
-        case(0:255)
+        case(1:255)
           write(*,'(A7,A4)'), "State: ", achar(tmp_s%c) // "   "
         case(split_st)
           write(*,'(A7,A5)'), "State: ", "SPLIT"
@@ -198,6 +225,31 @@ contains
 
   end function append
 
+  subroutine deallocate_list(l)
+    type(ptr_list), pointer,  intent(inout) ::  l
+
+    type(ptr_list), pointer ::  tmp_l
+
+    do while(associated(l%next))
+      tmp_l => l
+      l => tmp_l%next
+      !print *, "Deallocating state", loc(tmp_l%s)
+      if(associated(tmp_l%s)) then
+        deallocate(tmp_l%s)
+        n_states = n_states - 1
+      end if
+      deallocate(tmp_l)
+    end do
+    !print *, "Deallocating state", loc(l%s)
+    if(associated(l%s)) then
+      deallocate(l%s)
+      n_states = n_states - 1
+    end if
+    deallocate(l)
+    l => null()
+
+  end subroutine deallocate_list
+
   subroutine patch(l, s)
     type(ptr_list), pointer, intent(inout)  ::  l
     type(state),    pointer, intent(in)     ::  s
@@ -236,7 +288,6 @@ contains
     n_alt   = 0
     n_atom  = 0
     escaped = .false.
-    if(re(1:1) == "^") re_loc = 2
 
     pf = null_st
 
@@ -410,30 +461,36 @@ contains
 
   end function re_to_post
 
-  function post_to_nfa(postfix)
+
+  function post_to_nfa(postfix, states)
     type(state), pointer  ::  post_to_nfa
     integer,  intent(in)  ::  postfix(pf_buff_size)
+    type(ptr_list), pointer,  intent(inout) ::  states
 
     integer ::  pf_loc, s_loc
-    type(frag_stack)      ::  stack(1000)
+    type(frag_stack), allocatable ::  stack(:)
     type(frag),   pointer ::  stack_p, e1, e2, e
     type(state),  pointer ::  s => null()
     type(state),  pointer ::  matchstate
     type(state),  pointer ::  nullstate
 
     integer ::  matchloc, nullloc
+    integer ::  ierr
 
+    allocate(stack(1000), stat=ierr)
+    if(ierr /= 0) stop "Unable to allocate stack"
 
-    allocate(matchstate, nullstate)
-    matchstate = new_state(match_st, null(), null())
-    nullstate = new_state(null_st, null(), null())
+    if(states%side /= 0) stop "Trying to build nfa with in-use states"
+
+    matchstate => new_state(match_st, null(), null())
+    nullstate => new_state(null_st, null(), null())
+
     stack_p => stack(1)%elem
     pf_loc  = 1
     s_loc   = 1
 
     matchloc = loc(matchstate)
     nullloc = loc(nullstate)
-    if(associated(post_to_nfa)) stop "post_to_nfa already associated"
 
     do while(postfix(pf_loc) /= null_st)
       s => null()
@@ -450,44 +507,34 @@ contains
         case(or_op)
           e2 => pop()
           e1 => pop()
-          allocate(s)
-          s = new_state( split_st, e1%start, e2%start )
+          s => new_state( split_st, e1%start, e2%start )
           call push( new_frag(s, append(e1%out1, e2%out1)) )
-          s => null()
           e1 => null()
           e2 => null()
 
         case(quest_op)
           e => pop()
-          allocate(s)
-          s = new_state( split_st, e%start, nullstate )
+          s => new_state( split_st, e%start, nullstate )
           call push( new_frag(s, append(e%out1, new_list(s, 2)))  )
-          s => null()
           e => null()
 
         case(star_op)
           e => pop()
-          allocate(s)
-          s = new_state( split_st, e%start, nullstate )
+          s => new_state( split_st, e%start, nullstate )
           call patch(e%out1, s)
           call push( new_frag(s, new_list(s, 2))  )
-          s => null()
           e => null()
 
         case(plus_op)
           e => pop()
-          allocate(s)
-          s = new_state( split_st, e%start, nullstate )
+          s => new_state( split_st, e%start, nullstate )
           call patch(e%out1, s)
           call push( new_frag(e%start, new_list(s, 2))  )
-          s => null()
           e => null()
 
         case default
-          allocate(s)
-          s = new_state( postfix(pf_loc), nullstate, nullstate )
+          s => new_state( postfix(pf_loc), nullstate, nullstate )
           call push( new_frag(s, new_list(s, 1)) )
-          s => null()
           e => null()
 
       end select
@@ -500,11 +547,44 @@ contains
     call patch(e%out1, matchstate)
 
     post_to_nfa => e%start
+    post_to_nfa%head = .true.
 
     if(matchstate%c /= match_st) stop "***** Matchstate has changed!"
-    if(nullstate%c /= -1) stop "***** Nullstate has changed!"
+    if(nullstate%c /= null_st) stop "***** Nullstate has changed!"
+
+    deallocate(stack, stat=ierr)
+    if(ierr /= 0) stop "Unable to deallocate stack"
     e => null()
+
   contains
+
+    function new_state(c, out1, out2)
+      type(state), pointer  ::  new_state
+      integer,                intent(in)  ::  c
+      type(state),  pointer,  intent(in)  ::  out1, out2
+
+      type(ptr_list), pointer ::  tmp_l
+      integer ::  ierr
+
+      new_state => null()
+      tmp_l => null()
+      allocate(new_state, stat=ierr)
+      if(ierr /= 0) stop "Unable to allocate new_state"
+      n_states = n_states + 1
+      new_state%last_list = 0
+      new_state%c = c
+      new_state%out1 => out1
+      new_state%out2 => out2
+      new_state%head = .false.
+
+      !print *, "Allocated new_state:", loc(new_state)
+      !print *, "  c    = ", c
+      !print *, "  out1 = ", loc(out1)
+      !print *, "  out2 = ", loc(out2)
+      tmp_l => append(states, new_list(new_state, -1))
+      states => tmp_l
+
+  end function new_state
 
     subroutine push(f)
       type(frag), intent(in), pointer  ::  f
@@ -528,7 +608,7 @@ contains
     logical :: res
     type(state),      intent(inout),  pointer   ::  nfa
     character(len=*), intent(in)                ::  str
-    integer,          intent(in)                ::  start
+    integer,          intent(inout)             ::  start
     integer,          intent(out),    optional  ::  finish
 
     type  ::  list
@@ -536,16 +616,18 @@ contains
     end type list
 
     type(list), allocatable, target ::  l1(:), l2(:)
-    integer                         ::  list_id
+    integer                         ::  list_id = 0
+    integer ::  loc_start
+    logical ::  match_first
+    logical ::  no_advance
 
     type(list), pointer ::  c_list(:), n_list(:), t(:)
     integer ::  ch_loc, n_cl, n_nl, n_t
-    integer ::  ierr
+    integer ::  i, ierr
 
     allocate(l1(1:n_states), l2(1:n_states), stat=ierr)
     if(ierr /= 0) stop "Error allocating l1,l2 in run_nfa"
 
-    list_id = 0
     n_cl = 1
     n_nl = 1
 
@@ -553,8 +635,13 @@ contains
     n_list => l2
 
     ch_loc = start
+    loc_start = start
+    match_first = .false.
 
+    res = .false.
+    if(present(finish)) finish = -1
     do while (ch_loc <= len(str)+1)
+      no_advance  = .false.
       call step()
       t      => c_list
       c_list => n_list
@@ -564,12 +651,16 @@ contains
       n_nl = n_t
       if( is_match(c_list, n_cl) ) then
         res = .true.
-        return
+        if(present(finish)) finish = min(ch_loc, len(str))
+        !goto 900
       end if
-      ch_loc = ch_loc + 1
+      if(.not. no_advance) ch_loc = ch_loc + 1
     end do
 
-    res = .false.
+900 continue
+
+    if (res) start = loc_start
+    deallocate(l1, l2)
 
   contains
 
@@ -589,7 +680,7 @@ contains
 
     subroutine step()
       integer ::  i
-      type(state),  pointer ::  s
+      type(state),  pointer ::  s => null()
 
       list_id = list_id + 1
       n_nl = 1
@@ -601,7 +692,9 @@ contains
           select case(s%c)
 
             case(0:255)
-              if( s%c == iachar(str(ch_loc:ch_loc)) ) call add_state(n_list, n_nl, s%out1)
+              if( s%c == iachar(str(ch_loc:ch_loc)) ) then
+                call add_state(n_list, n_nl, s%out1)
+              end if
 
             case(any_ch)
               call add_state(n_list, n_nl, s%out1)
@@ -617,7 +710,7 @@ contains
               end select
             case(word_ch)
               select case( str(ch_loc:ch_loc) )
-                case("a":"z","A":"Z","0:9","_")
+                case("a":"z","A":"Z","0":"9","_")
                   call add_state(n_list, n_nl, s%out1)
               end select
             case(space_ch)
@@ -652,19 +745,35 @@ contains
               end select
 
             case(start_ch)
-              if(ch_loc == start) call add_state(n_list, n_nl, s%out1)
+              !if(ch_loc == start) call add_state(n_list, n_nl, s%out1)
+              if(ch_loc == start) then 
+                match_first = .true.
+                call add_state(n_list, n_nl, s%out1)
+              end if
+              no_advance = .true.
 
             case(finish_ch)
+              !no_advance = .true.
+
+            case( match_st )
 
             case default
-              stop "Unrecognised state!"
+              print *, "Unrecognised state ", s%c
+              stop !"Unrecognised state!"
           end select
         else
           if(s%c == finish_ch) then
-            if(ch_loc == len(str)+1) call add_state(n_list, n_nl, s%out1)
+            call add_state(n_list, n_nl, s%out1)
           end if
         end if
       end do
+
+      if(.not. match_first) then
+        if(s%head .and. (n_nl == 1)) then
+          loc_start = loc_start + 1
+          call add_state(n_list, n_nl, s)
+        end if
+      end if
 
     end subroutine step
 
@@ -704,58 +813,105 @@ contains
 
   end function run_nfa
 
-  function re_match_logical(re, str)
-    logical :: re_match_logical
+  function re_match(re, str)
+    logical :: re_match
     character(len=*), intent(in)  ::  re
     character(len=*), intent(in)  ::  str
 
-    integer               ::  postfix(pf_buff_size)
-    type(state),  pointer ::  nfa
+    integer                 ::  postfix(pf_buff_size)
+    type(state),    pointer ::  nfa
+    type(ptr_list), pointer ::  allocated_states
     integer ::  istart
 
     n_states = 0
 
+    nfa => null()
+    allocated_states => new_list(null(), 0)
     istart = 1
 
     if(len_trim(re) < 1) stop "Regular expression cannot be of length 0"
     postfix = re_to_post(trim(re))
-    nfa => post_to_nfa(postfix)
+    nfa => post_to_nfa(postfix, allocated_states)
 
-!    print *, " "
-!    call print_state(nfa)
+    !call print_pf(postfix)
+    !call print_state(nfa)
 
-    if(re(1:1) == "^") then
-      re_match_logical = run_nfa(nfa, trim(str), start=1)
-    else
-      do istart = 1, len_trim(str)
-        re_match_logical = run_nfa(nfa, trim(str), start=istart)
-        if(re_match_logical) return
-      end do
+    re_match = run_nfa(nfa, trim(str), istart)
+
+901 continue
+    call deallocate_list(allocated_states)
+    if(n_states /= 0) stop "Some states are still allocated!"
+
+  end function re_match
+
+  function re_match_str(re, str)
+    character(len=pf_buff_size) :: re_match_str
+    character(len=*), intent(in)  ::  re
+    character(len=*), intent(in)  ::  str
+
+    integer                 ::  postfix(pf_buff_size)
+    type(state),    pointer ::  nfa
+    type(ptr_list), pointer ::  allocated_states
+    integer ::  istart, fin, ifin
+    logical :: match
+
+    n_states = 0
+
+    istart = 1
+    nfa => null()
+    allocated_states => new_list(null(), 0)
+
+    re_match_str = ""
+
+    if(len_trim(re) < 1) stop "Regular expression cannot be of length 0"
+    postfix = re_to_post(trim(re))
+    nfa => post_to_nfa(postfix, allocated_states)
+
+    match = run_nfa(nfa, trim(str), istart, finish=fin)
+    if(match) then
+      re_match_str = str(istart:fin)
+      goto 902
     end if
 
-  end function re_match_logical
+902 continue
+    call deallocate_list(allocated_states)
+    if(n_states /= 0) stop "Some states are still allocated!"
+
+  end function re_match_str
+
+!  function re_split(re, str)
+!    character(len=pf_buff_size)   :: re_split(10)
+!    character(len=*), intent(in)  ::  re
+!    character(len=*), intent(in)  ::  str
+!    character(len=len_trim(str))  ::  match
+!    integer :: first, last, i, match_len
+!
+!
+!    re_split = ""
+!!    match = re_match_str(re, str)
+!!    match_len = len_trim(match) - 1
+!!    match = match(:match_len)
+!
+!    first = 1
+!    last = 1
+!    i = 1
+!    do while (first < len_trim(str))
+!
+!      match = re_match_str(re, str(first:))
+!      print *, 'Match:   ', "'", trim(match), "'"
+!      match_len = len_trim(match) - 1
+!      if(match_len <= 0) exit
+!
+!      last = first + scan(str(first:), match) - 1
+!      if(last /= 0) then
+!        re_split(i) = str(first:last-1)
+!        first = last + match_len
+!        i = i + 1
+!        if (i > 10) stop "Too big"
+!      end if
+!    end do
+!    if(last <= len_trim(str)) re_split(i) = str(first:)
+!
+!  end function re_split
 
 end module regex
-
-program re_test
-  use regex
-  use io
-  implicit none
-
-  type(state), pointer ::  s
-  type(state), pointer  ::  next
-  character(len=120), allocatable :: args(:)
-  character(len=120) :: re, str
-  character(len=120) :: re_number
-
-  call io_initialise(args = args)
-  re = args(1)
-  str = args(2)
-
-  print *, "String:  ", trim(str)
-
-  print *, "Regex:   ", trim(re)
-
-  print *, "Match:  ", re_match(re, str)
-
-end program re_test
