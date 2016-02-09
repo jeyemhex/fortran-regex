@@ -9,7 +9,7 @@
 !   webpage!                                                                   !
 !                                                                              !
 !==============================================================================!
-! Author: Edward Higgins, 2014-10-01                                           !
+! Author: Edward Higgins, 2016-02-01                                           !
 !==============================================================================!
 
 module regex
@@ -20,7 +20,8 @@ module regex
 
   public :: re_match, re_match_str!, re_split
 
-  integer,  parameter ::  pf_buff_size = 8000
+  integer,  parameter ::  pf_buff_size  = 8000
+  integer,  parameter ::  pf_stack_size = 1000
 
   ! Special NFA states
   integer,  parameter ::  null_st      = -1  ! denotes a NULL node in the nfa
@@ -271,7 +272,7 @@ contains
 
   end subroutine patch
 
-  function re_to_post(re) result(pf)
+  function re_to_pf(re) result(pf)
     integer ::  pf(pf_buff_size)
     character(len=*),   intent(in) :: re
 
@@ -389,6 +390,7 @@ contains
             pf_loc = pf_loc + 1
             n_atom = n_atom + 1
 
+          case(' ', achar(9))
 
           case default
             if(n_atom > 1) then
@@ -404,7 +406,7 @@ contains
       else if(escaped) then
 
         select case(re(re_loc:re_loc))
-          case('(','|',')','*','+','?','\','.','^','$')
+          case('(','|',')','*','+','?','\','.','^','$',' ',achar(9))
             escaped_chr = iachar(re(re_loc:re_loc))
           case('a')
             escaped_chr = alpha_ch
@@ -459,11 +461,11 @@ contains
       n_alt = n_alt - 1
     end do
 
-  end function re_to_post
+  end function re_to_pf
 
 
-  function post_to_nfa(postfix, states)
-    type(state), pointer  ::  post_to_nfa
+  function pf_to_nfa(postfix, states)
+    type(state), pointer  ::  pf_to_nfa
     integer,  intent(in)  ::  postfix(pf_buff_size)
     type(ptr_list), pointer,  intent(inout) ::  states
 
@@ -477,7 +479,7 @@ contains
     integer ::  matchloc, nullloc
     integer ::  ierr
 
-    allocate(stack(1000), stat=ierr)
+    allocate(stack(pf_stack_size), stat=ierr)
     if(ierr /= 0) stop "Unable to allocate stack"
 
     if(states%side /= 0) stop "Trying to build nfa with in-use states"
@@ -546,8 +548,8 @@ contains
     if(s_loc /= 1) stop "Stack is not empty on exit"
     call patch(e%out1, matchstate)
 
-    post_to_nfa => e%start
-    post_to_nfa%head = .true.
+    pf_to_nfa => e%start
+    pf_to_nfa%head = .true.
 
     if(matchstate%c /= match_st) stop "***** Matchstate has changed!"
     if(nullstate%c /= null_st) stop "***** Nullstate has changed!"
@@ -602,7 +604,7 @@ contains
 
     end function pop
 
-  end function post_to_nfa
+  end function pf_to_nfa
 
   function run_nfa(nfa, str, start, finish) result(res)
     logical :: res
@@ -830,8 +832,8 @@ contains
     istart = 1
 
     if(len_trim(re) < 1) stop "Regular expression cannot be of length 0"
-    postfix = re_to_post(trim(re))
-    nfa => post_to_nfa(postfix, allocated_states)
+    postfix = re_to_pf(trim(re))
+    nfa => pf_to_nfa(postfix, allocated_states)
 
     !call print_pf(postfix)
     !call print_state(nfa)
@@ -864,8 +866,8 @@ contains
     re_match_str = ""
 
     if(len_trim(re) < 1) stop "Regular expression cannot be of length 0"
-    postfix = re_to_post(trim(re))
-    nfa => post_to_nfa(postfix, allocated_states)
+    postfix = re_to_pf(trim(re))
+    nfa => pf_to_nfa(postfix, allocated_states)
 
     match = run_nfa(nfa, trim(str), istart, finish=fin)
     if(match) then

@@ -72,7 +72,7 @@ program re_test
   call test("a|b"   , "b"   , .true. , "b"   )
   call test("a|b"   , "c"   , .false.        )
 
-  ! Single character Or
+  ! Multi character Or
   call test("ab|bc" , "ab"  , .true. , "ab"  )
   call test("ab|bc" , "ac"  , .false.        )
   call test("ab|bc" , "bc"  , .true. , "bc"  )
@@ -81,24 +81,40 @@ program re_test
   call test("ab|bc" , "c"   , .false.        )
   call test("ab|bc" , "abc" , .true. , "ab"  )
 
+  !*, + and ? operators
+  call test("a?"    , "a"   , .true. , "a"   )
+  call test("a?"    , "b"   , .true. , ""    )
+  call test("a?"    , "abc" , .true. , "a"   )
+  call test("b?"    , "abc" , .true. , "b"   )
+  call test("c?"    , "abc" , .true. , "c"   )
+  call test("a?b"   , "a"   , .true. , "a"   )
+  call test("a?b"   , "b"   , .true. , "b"   )
+  call test("a?bc"  , "abc" , .true. , "abc" )
+  call test("b?bc"  , "abc" , .true. , "bc"  )
+  call test("abc?"  , "abc" , .true. , "abc" )
+  call test("abx?"  , "abc" , .true. , "ab"  )
   
   ! Random tests for finding word boundaries
-  call test("^\w+\s+(:|=)?\s*\w+$" , "hello : world"  , .true. , "hello : world" )
-  call test("^\w+\s+(:|=)?\s*\w+$" , "hello = world"  , .true. , "hello = world" )
-  call test("^\w+\s+(:|=)?\s*\w+$" , "hello = world"  , .true. , "hello = world" )
-  call test("^\w+\s+(:|=)?\s*\w+$" , "hello world"    , .true. , "hello world"   )
-  call test("^\w+\s+(:|=)?\s*\w+$" , "hello, world"   , .false.                  )
-  call test("^\w+\s+\w+$"          , "hello world"    , .true. , "hello world"   )
-  call test("^\w+\W+\w+$"          , "hello world"    , .true. , "hello world"   )
-  call test("^\w+\W+\w+$"          , "hello,world"    , .true. , "hello,world"   )
-  call test("^\w+\W+\w+$"          , "HelloWorld"     , .false.                  )
+
+  call test("^\w+ \w+$"            , "hello world"   , .false.                  )
+  call test("^\w+\ \w+$"           , "hello world"   , .true. , "hello world"   )
+  call test("^\w+\s+(:|=)?\s*\w+$" , "hello : world" , .true. , "hello : world" )
+  call test("^\w+\s+(:|=)?\s*\w+$" , "hello = world" , .true. , "hello = world" )
+  call test("^\w+\s+(:|=)?\s*\w+$" , "hello = world" , .true. , "hello = world" )
+  call test("^\w+\s+(:|=)?\s*\w+$" , "hello world"   , .true. , "hello world"   )
+  call test("^\w+\s+(:|=)?\s*\w+$" , "hello, world"  , .false.                  )
+  call test("^\w+ \s+ \w+$"        , "hello world"   , .true. , "hello world"   )
+  call test("^\w+ \W+ \w+$"        , "hello world"   , .true. , "hello world"   )
+  call test("^\w+ \W+ \w+$"        , "hello,world"   , .true. , "hello,world"   )
+  call test("^\w+ \W+ \w+$"        , "HelloWorld"    , .false.                  )
 
   ! Random tests for finding numbers
-  call test("^\d+(\.\d*)?$" , "0.63"   , .true. , "0.63" )
-  call test("^\d+(\.\d*)?$" , "724"    , .true. , "724"  )
-  call test("^\d+(\.\d*)?$" , "6.2_dp" , .false.         )
-  call test("^\d+(\.\d*)?$" , "6."     , .true. , "6."   )
-  call test("^\d+(\.\d*)?$" , ".32"    , .false.         )
+  call test("^\d+(\.\d*)?$"             , "0.63"   , .true. , "0.63" )
+  call test("^\d+(\.\d*)?$"             , "724"    , .true. , "724"  )
+  call test("^\d+(\.\d*)?$"             , "6.2_dp" , .false.         )
+  call test("^\d+(\.\d*)?$"             , "6."     , .true. , "6."   )
+  call test("^\d+(\.\d*)?$"             , ".32"    , .false.         )
+  call test("^(\d+\.\d*|\d*\.\d+|\d+)$" , ".32"    , .true. , ".32"  )
 
   print *, " "
   select case (ntests)
