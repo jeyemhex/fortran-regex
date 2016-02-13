@@ -85,21 +85,26 @@ program re_test
   call test("a?"    , "a"   , .true. , "a"   )
   call test("a?"    , "b"   , .true. , ""    )
   call test("a?"    , "abc" , .true. , "a"   )
-  call test("b?"    , "abc" , .true. , "b"   )
-  call test("c?"    , "abc" , .true. , "c"   )
-  call test("a?b"   , "a"   , .true. , "a"   )
+  call test("b?"    , "abc" , .true. , ""    )
+  call test("c?"    , "abc" , .true. , ""    )
+  call test("a?b"   , "a"   , .false.        )
   call test("a?b"   , "b"   , .true. , "b"   )
   call test("a?bc"  , "abc" , .true. , "abc" )
   call test("b?bc"  , "abc" , .true. , "bc"  )
   call test("abc?"  , "abc" , .true. , "abc" )
   call test("abx?"  , "abc" , .true. , "ab"  )
-  
+
+  call test("abc"   , "ababc",.true. , "abc" )
+  call test("cat"   , "He captured a catfish for his cat", .true. , "cat")
+  call test("hel*o?", "hello", .true., "hello")
+  call test("hel*o?", "hell", .true., "hell")
+  call test("hel*o?", "heo", .true., "heo")
+
   ! Random tests for finding word boundaries
 
   call test("^\w+ \w+$"            , "hello world"   , .false.                  )
   call test("^\w+\ \w+$"           , "hello world"   , .true. , "hello world"   )
   call test("^\w+\s+(:|=)?\s*\w+$" , "hello : world" , .true. , "hello : world" )
-  call test("^\w+\s+(:|=)?\s*\w+$" , "hello = world" , .true. , "hello = world" )
   call test("^\w+\s+(:|=)?\s*\w+$" , "hello = world" , .true. , "hello = world" )
   call test("^\w+\s+(:|=)?\s*\w+$" , "hello world"   , .true. , "hello world"   )
   call test("^\w+\s+(:|=)?\s*\w+$" , "hello, world"  , .false.                  )
@@ -108,6 +113,10 @@ program re_test
   call test("^\w+ \W+ \w+$"        , "hello,world"   , .true. , "hello,world"   )
   call test("^\w+ \W+ \w+$"        , "HelloWorld"    , .false.                  )
 
+  call test("^(\d+)\s+IN\s+SOA\s+(\S+)\s+(\S+)\s*\(\s*$" , "1 IN SOA non-sp1 non-sp2(" , .true. , "1 IN SOA non-sp1 non-sp2(" )
+  call test("^(\d+)\s+IN\s+SOA\s+(\S+)\s+(\S+)\s*\(\s*$" , "1IN SOA non-sp1 non-sp2("  , .false.                              )
+  call test("^(a(b(c)))(d(e(f)))(h(i(j)))(k(l(m)))$"     , "abcdefhijklm"              , .true. , "abcdefhijklm"              )
+
   ! Random tests for finding numbers
   call test("^\d+(\.\d*)?$"             , "0.63"   , .true. , "0.63" )
   call test("^\d+(\.\d*)?$"             , "724"    , .true. , "724"  )
@@ -115,6 +124,11 @@ program re_test
   call test("^\d+(\.\d*)?$"             , "6."     , .true. , "6."   )
   call test("^\d+(\.\d*)?$"             , ".32"    , .false.         )
   call test("^(\d+\.\d*|\d*\.\d+|\d+)$" , ".32"    , .true. , ".32"  )
+  call test("^.+\d\d\d$"                , "x123"   , .true. , "x123" )
+  call test("^.+\d\d\d$"                , "x1234"  , .true. , "x1234")
+  call test("^.+\d\d\d$"                , "xx123"  , .true. , "xx123")
+  call test("^.+\d\d\d$"                , "12345"  , .true. , "12345")
+  call test("^.+\d\d\d$"                , "123"    , .false.         )
 
   print *, " "
   select case (ntests)

@@ -472,7 +472,7 @@ contains
     integer ::  pf_loc, s_loc
     type(frag_stack), allocatable ::  stack(:)
     type(frag),   pointer ::  stack_p, e1, e2, e
-    type(state),  pointer ::  s => null()
+    type(state),  pointer ::  s
     type(state),  pointer ::  matchstate
     type(state),  pointer ::  nullstate
 
@@ -620,46 +620,54 @@ contains
     type(list), allocatable, target ::  l1(:), l2(:)
     integer                         ::  list_id = 0
     integer ::  loc_start
-    logical ::  match_first
     logical ::  no_advance
 
     type(list), pointer ::  c_list(:), n_list(:), t(:)
     integer ::  ch_loc, n_cl, n_nl, n_t
-    integer ::  i, ierr
+    integer ::  istart, i, ierr
 
     allocate(l1(1:n_states), l2(1:n_states), stat=ierr)
     if(ierr /= 0) stop "Error allocating l1,l2 in run_nfa"
 
-    n_cl = 1
-    n_nl = 1
+    start_loop: do istart = start, len(str)
+      do i = 1, n_states
+        l1(i)%s => null()
+        l2(i)%s => null()
+      end do
 
-    c_list => start_list(l1, n_cl, nfa)
-    n_list => l2
+      n_cl = 1
+      n_nl = 1
 
-    ch_loc = start
-    loc_start = start
-    match_first = .false.
+      c_list => start_list(l1, n_cl, nfa)
+      n_list => l2
 
-    res = .false.
-    if(present(finish)) finish = -1
-    do while (ch_loc <= len(str)+1)
-      no_advance  = .false.
-      call step()
-      t      => c_list
-      c_list => n_list
-      n_list => t
-      n_t  = n_cl
-      n_cl = n_nl
-      n_nl = n_t
+      ch_loc = istart
+      loc_start = istart
+
+      res = .false.
       if( is_match(c_list, n_cl) ) then
         res = .true.
         if(present(finish)) finish = min(ch_loc, len(str))
-        !goto 900
       end if
-      if(.not. no_advance) ch_loc = ch_loc + 1
-    end do
 
-900 continue
+      if(present(finish)) finish = -1
+      do while (ch_loc <= len(str)+1)
+        no_advance  = .false.
+        call step()
+        t      => c_list
+        c_list => n_list
+        n_list => t
+        n_t  = n_cl
+        n_cl = n_nl
+        n_nl = n_t
+        if( is_match(c_list, n_cl) ) then
+          res = .true.
+          if(present(finish)) finish = min(ch_loc, len(str))
+        end if
+        if(.not. no_advance) ch_loc = ch_loc + 1
+      end do
+      if(res) exit start_loop
+    end do start_loop
 
     if (res) start = loc_start
     deallocate(l1, l2)
@@ -747,15 +755,10 @@ contains
               end select
 
             case(start_ch)
-              !if(ch_loc == start) call add_state(n_list, n_nl, s%out1)
-              if(ch_loc == start) then 
-                match_first = .true.
-                call add_state(n_list, n_nl, s%out1)
-              end if
+              if(ch_loc == 1) call add_state(n_list, n_nl, s%out1)
               no_advance = .true.
 
             case(finish_ch)
-              !no_advance = .true.
 
             case( match_st )
 
@@ -769,13 +772,6 @@ contains
           end if
         end if
       end do
-
-      if(.not. match_first) then
-        if(s%head .and. (n_nl == 1)) then
-          loc_start = loc_start + 1
-          call add_state(n_list, n_nl, s)
-        end if
-      end if
 
     end subroutine step
 
