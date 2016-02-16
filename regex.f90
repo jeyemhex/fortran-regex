@@ -34,6 +34,8 @@ module regex
   integer,  parameter ::  quest_op     = 303 ! ? operator (0 or 1)
   integer,  parameter ::  or_op        = 304 ! | operator (a or b)
   integer,  parameter ::  cat_op       = 305 ! . operator (cats 2 fragments)
+  integer,  parameter ::  open_par_op  = 306 ! ( operator (for constructing match list)
+  integer,  parameter ::  close_par_op = 307 ! ( operator (for constructing match list)
 
   ! NFA special matches
   integer,  parameter ::  any_ch       = 401 ! .  match (anything)
@@ -48,11 +50,13 @@ module regex
   integer,  parameter ::  start_ch     = 410 ! ^  match (start of the string)
   integer,  parameter ::  finish_ch    = 411 ! $  match (end of the string)
 
+  ! List of parentheses for building the postfix
   type  ::  paren_list
     integer ::  n_atom
     integer ::  n_alt
   end type paren_list
 
+  ! State in the NFA
   type, public  :: state
     integer               ::  c
     type(state),  pointer ::  out1 => null()
@@ -61,23 +65,26 @@ module regex
     logical               ::  head = .false.
   end type state
 
+  ! List of pointers to states
   type  :: ptr_list
     type(state),    pointer ::  s    => null()
     integer                 ::  side =  -1
     type(ptr_list), pointer ::  next => null()
   end type ptr_list
 
+  ! NFA fragment
   type  :: frag
     type(state),    pointer ::  start => null()
     type(ptr_list), pointer ::  out1  => null()
   end type frag
 
+  ! Fragment stack node
   type  :: frag_stack
     type(frag), pointer ::  elem
   end type frag_stack
 
   integer :: n_states
-
+  integer ::  submatch_pars(pf_stack_size)
 
 contains
 
@@ -89,7 +96,6 @@ contains
     allocate(new_frag)
     new_frag%start => s
     new_frag%out1  => l
-
 
   end function new_frag
 
@@ -104,6 +110,21 @@ contains
           exit print_loop
         case(1:255)
           write(*,'(A7,A4)'), achar(pf(i)) // "   "
+        case(open_par_op)
+          write(*,'(A7,A5)'), "OP ( "
+        case(close_par_op)
+          write(*,'(A7,A5)'), "CL ) "
+        case(cat_op)
+          write(*,'(A7,A5)'), "CAT  "
+        case(plus_op)
+          write(*,'(A7,A5)'), "PLUS "
+        case(or_op)
+          write(*,'(A7,A5)'), "OR   "
+        case(quest_op)
+          write(*,'(A7,A5)'), "QUE  "
+        case(star_op)
+          write(*,'(A7,A5)'), "STAR "
+
         case(split_st)
           write(*,'(A7,A5)'), "SPLIT"
         case(match_st)
@@ -131,7 +152,8 @@ contains
         case(n_space_ch)
           write(*,'(A7,A5)'), "\S   "
         case default
-          stop "Unrecognised character in print_state"
+          write(*,'(A22,I4)') "Unrecognised character", pf(i)
+          stop
       end select
     end do print_loop
   end subroutine print_pf
@@ -164,6 +186,10 @@ contains
           write(*,'(A7,A5)'), "State: ", "SPLIT"
         case(match_st)
           write(*,'(A7,A5)'), "State: ", "MATCH"
+        case(open_par_op)
+          write(*,'(A7,A5)'), "State: ", "OP ( "
+        case(close_par_op)
+          write(*,'(A7,A5)'), "State: ", "CL ) "
         case(any_ch)
           write(*,'(A7,A5)'), "State: ", ".    "
         case(start_ch)
@@ -234,14 +260,12 @@ contains
     do while(associated(l%next))
       tmp_l => l
       l => tmp_l%next
-      !print *, "Deallocating state", loc(tmp_l%s)
       if(associated(tmp_l%s)) then
         deallocate(tmp_l%s)
         n_states = n_states - 1
       end if
       deallocate(tmp_l)
     end do
-    !print *, "Deallocating state", loc(l%s)
     if(associated(l%s)) then
       deallocate(l%s)
       n_states = n_states - 1
@@ -579,10 +603,6 @@ contains
       new_state%out2 => out2
       new_state%head = .false.
 
-      !print *, "Allocated new_state:", loc(new_state)
-      !print *, "  c    = ", c
-      !print *, "  out1 = ", loc(out1)
-      !print *, "  out2 = ", loc(out2)
       tmp_l => append(states, new_list(new_state, -1))
       states => tmp_l
 
@@ -606,7 +626,7 @@ contains
 
   end function pf_to_nfa
 
-  function run_nfa(nfa, str, start, finish) result(res)
+  function run_nfa_fast(nfa, str, start, finish) result(res)
     logical :: res
     type(state),      intent(inout),  pointer   ::  nfa
     character(len=*), intent(in)                ::  str
@@ -627,7 +647,7 @@ contains
     integer ::  istart, i, ierr
 
     allocate(l1(1:n_states), l2(1:n_states), stat=ierr)
-    if(ierr /= 0) stop "Error allocating l1,l2 in run_nfa"
+    if(ierr /= 0) stop "Error allocating l1,l2 in run_nfa_fast"
 
     start_loop: do istart = start, len(str)
       do i = 1, n_states
@@ -758,13 +778,21 @@ contains
               if(ch_loc == 1) call add_state(n_list, n_nl, s%out1)
               no_advance = .true.
 
+            case(open_par_op)
+              call add_state(n_list, n_nl, s%out1)
+              no_advance = .true.
+
+            case(close_par_op)
+              call add_state(n_list, n_nl, s%out1)
+              no_advance = .true.
+
             case(finish_ch)
 
             case( match_st )
 
             case default
               print *, "Unrecognised state ", s%c
-              stop !"Unrecognised state!"
+              stop
           end select
         else
           if(s%c == finish_ch) then
@@ -809,7 +837,151 @@ contains
 
     end subroutine add_state
 
-  end function run_nfa
+  end function run_nfa_fast
+
+  recursive function run_nfa_full(nfa, str, start, finish, head) result(res)
+    logical :: res
+    type(state),      intent(inout),  pointer   ::  nfa
+    character(len=*), intent(in)                ::  str
+    integer,          intent(inout)             ::  start
+    integer,          intent(out),    optional  ::  finish
+    logical,          intent(in),     optional  ::  head
+
+    integer ::  istart, fin
+
+    res = .false.
+    if(present(finish)) finish = -1
+    fin = -1
+
+    if(present(head)) then
+      if(.not. head) then
+        istart = start
+        call step()
+      else
+        stop "Don't be a dick..."
+      end if
+    else
+      start_loop: do istart = start, len(str)
+        call step()
+        if(res) exit start_loop
+      end do start_loop
+    end if
+
+    if(present(finish)) then
+      if(finish == -1) finish = fin
+    end if
+    start = istart
+
+  contains
+
+    recursive subroutine step()
+      integer ::  next_start
+
+      next_start = -1
+      if(istart <= len(str)) then
+        select case(nfa%c)
+          case( match_st )
+            res = .true.
+            if(present(finish)) finish = istart-1
+
+          case( split_st )
+            res = run_nfa_full(nfa%out1, str, istart, fin, head=.false.)
+            if(.not. res) res = run_nfa_full(nfa%out2, str, istart, fin, head=.false.)
+
+          case(0:255)
+            if( nfa%c == iachar(str(istart:istart)) ) then
+              next_start = istart + 1
+              res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+            end if
+
+          case(any_ch)
+            next_start = istart + 1
+            res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+          case(alpha_ch)
+            select case( str(istart:istart) )
+              case("a":"z","A":"Z")
+                next_start = istart + 1
+                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+            end select
+          case(numeric_ch)
+            select case( str(istart:istart) )
+              case("0":"9")
+                next_start = istart + 1
+                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+            end select
+          case(word_ch)
+            select case( str(istart:istart) )
+              case("a":"z","A":"Z","0":"9","_")
+                next_start = istart + 1
+                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+            end select
+          case(space_ch)
+            select case( str(istart:istart) )
+              case(" ", achar(9), achar(10))
+                next_start = istart + 1
+                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+            end select
+
+          case(n_alpha_ch)
+            select case( str(istart:istart) )
+              case("a":"z","A":"Z")
+              case default
+                next_start = istart + 1
+                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+            end select
+          case(n_numeric_ch)
+            select case( str(istart:istart) )
+              case("0":"9")
+              case default
+                next_start = istart + 1
+                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+            end select
+          case(n_word_ch)
+            select case( str(istart:istart) )
+              case("a":"z","A":"Z","0:9","_")
+              case default
+                next_start = istart + 1
+                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+            end select
+          case(n_space_ch)
+            select case( str(istart:istart) )
+              case(" ", achar(9), achar(10))
+              case default
+                next_start = istart + 1
+                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+            end select
+
+          case(start_ch)
+            if(start == 1) res = run_nfa_full(nfa%out1, str, start, fin, head=.false.)
+
+          case(open_par_op)
+            res = run_nfa_full(nfa%out1, str, istart, fin, head=.false.)
+
+          case(close_par_op)
+            res = run_nfa_full(nfa%out1, str, istart, fin, head=.false.)
+
+          case(finish_ch)
+
+          case default
+            print *, "Unrecognised state ", nfa%c
+            stop
+        end select
+      else
+        select case(nfa%c)
+          case( split_st )
+            res = run_nfa_full(nfa%out1, str, istart, fin, head=.false.)
+            if(.not. res) res = run_nfa_full(nfa%out2, str, istart, fin, head=.false.)
+          case( match_st )
+            res = .true.
+            if(present(finish)) finish = len(str)
+          case( finish_ch )
+            res = run_nfa_full(nfa%out1, str, istart, fin, head=.false.)
+        end select
+      end if
+
+    end subroutine step
+
+  end function run_nfa_full
 
   function re_match(re, str)
     logical :: re_match
@@ -831,10 +1003,10 @@ contains
     postfix = re_to_pf(trim(re))
     nfa => pf_to_nfa(postfix, allocated_states)
 
-    !call print_pf(postfix)
-    !call print_state(nfa)
+!    call print_pf(postfix)
+!    call print_state(nfa)
 
-    re_match = run_nfa(nfa, trim(str), istart)
+    re_match = run_nfa_full(nfa, trim(str), istart)
 
 901 continue
     call deallocate_list(allocated_states)
@@ -865,7 +1037,7 @@ contains
     postfix = re_to_pf(trim(re))
     nfa => pf_to_nfa(postfix, allocated_states)
 
-    match = run_nfa(nfa, trim(str), istart, finish=fin)
+    match = run_nfa_full(nfa, trim(str), istart, finish=fin)
     if(match) then
       re_match_str = str(istart:fin)
       goto 902

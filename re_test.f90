@@ -9,7 +9,10 @@ program re_test
   ntests = 0
   failed = ""
 
-  ! Single character matching
+  call test("(ab)c"    , "abc"   , .true. , "abc"   )
+  call test("^(ab|xx)?c$"    , "abc"   , .true. , "abc"   )
+
+ ! Single character matching
   call test("a"    , "a"   , .true. , "a"   )
   call test("a"    , "b"   , .false.        )
   call test("a"    , "abc" , .true. , "a"   )
@@ -67,6 +70,7 @@ program re_test
   call test("^bc$"  , "abc" , .false.        )
   call test("^abc$" , "abc" , .true. , "abc" )
 
+
   ! Single character Or
   call test("a|b"   , "a"   , .true. , "a"   )
   call test("a|b"   , "b"   , .true. , "b"   )
@@ -101,7 +105,6 @@ program re_test
   call test("hel*o?", "heo", .true., "heo")
 
   ! Random tests for finding word boundaries
-
   call test("^\w+ \w+$"            , "hello world"   , .false.                  )
   call test("^\w+\ \w+$"           , "hello world"   , .true. , "hello world"   )
   call test("^\w+\s+(:|=)?\s*\w+$" , "hello : world" , .true. , "hello : world" )
@@ -117,7 +120,7 @@ program re_test
   call test("^(\d+)\s+IN\s+SOA\s+(\S+)\s+(\S+)\s*\(\s*$" , "1IN SOA non-sp1 non-sp2("  , .false.                              )
   call test("^(a(b(c)))(d(e(f)))(h(i(j)))(k(l(m)))$"     , "abcdefhijklm"              , .true. , "abcdefhijklm"              )
 
-  ! Random tests for finding numbers
+ ! Random tests for finding numbers
   call test("^\d+(\.\d*)?$"             , "0.63"   , .true. , "0.63" )
   call test("^\d+(\.\d*)?$"             , "724"    , .true. , "724"  )
   call test("^\d+(\.\d*)?$"             , "6.2_dp" , .false.         )
