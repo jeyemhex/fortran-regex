@@ -18,7 +18,7 @@ module regex
 
   private
 
-  public :: re_match, re_match_str!, re_split
+  public :: re_match, re_match_str, re_split
 
   integer,  parameter ::  pf_buff_size  = 8000
   integer,  parameter ::  pf_stack_size = 1000
@@ -1008,7 +1008,6 @@ contains
 
     re_match = run_nfa_full(nfa, trim(str), istart)
 
-901 continue
     call deallocate_list(allocated_states)
     if(n_states /= 0) stop "Some states are still allocated!"
 
@@ -1038,50 +1037,87 @@ contains
     nfa => pf_to_nfa(postfix, allocated_states)
 
     match = run_nfa_full(nfa, trim(str), istart, finish=fin)
-    if(match) then
-      re_match_str = str(istart:fin)
-      goto 902
-    end if
+    if(match) re_match_str = str(istart:fin)
 
-902 continue
     call deallocate_list(allocated_states)
     if(n_states /= 0) stop "Some states are still allocated!"
 
   end function re_match_str
 
-!  function re_split(re, str)
-!    character(len=pf_buff_size)   :: re_split(10)
-!    character(len=*), intent(in)  ::  re
-!    character(len=*), intent(in)  ::  str
-!    character(len=len_trim(str))  ::  match
-!    integer :: first, last, i, match_len
-!
-!
-!    re_split = ""
-!!    match = re_match_str(re, str)
-!!    match_len = len_trim(match) - 1
-!!    match = match(:match_len)
-!
-!    first = 1
-!    last = 1
-!    i = 1
-!    do while (first < len_trim(str))
-!
-!      match = re_match_str(re, str(first:))
-!      print *, 'Match:   ', "'", trim(match), "'"
-!      match_len = len_trim(match) - 1
-!      if(match_len <= 0) exit
-!
-!      last = first + scan(str(first:), match) - 1
-!      if(last /= 0) then
-!        re_split(i) = str(first:last-1)
-!        first = last + match_len
-!        i = i + 1
-!        if (i > 10) stop "Too big"
-!      end if
-!    end do
-!    if(last <= len_trim(str)) re_split(i) = str(first:)
-!
-!  end function re_split
+  function re_split(re, str)
+    character(len=pf_buff_size), allocatable   :: re_split(:)
+    character(len=*), intent(in)  ::  re
+    character(len=*), intent(in)  ::  str
+
+    character(len=len_trim(str))  ::  match
+    type(state),    pointer ::  nfa
+    type(ptr_list), pointer ::  allocated_states
+    integer                 ::  postfix(pf_buff_size)
+    logical                 ::   is_match
+
+    integer :: first, last, i, match_len
+    integer :: istart, fin, isplit, last_fin, n_splits
+
+    n_states = 0
+
+    istart = 1
+    nfa => null()
+    allocated_states => new_list(null(), 0)
+
+    if(len_trim(re) < 1) stop "Regular expression cannot be of length 0"
+    postfix = re_to_pf(trim(re))
+    nfa => pf_to_nfa(postfix, allocated_states)
+
+    istart = 1
+    isplit = 1
+    n_splits = 0
+
+    is_match = run_nfa_fast(nfa, trim(str), istart, finish=fin)
+    if(is_match) then
+      n_splits = n_splits + 1
+      last_fin = fin
+      istart = last_fin+1
+      isplit = 2
+      do while(istart <= len_trim(str))
+        is_match = run_nfa_full(nfa, trim(str), istart, finish=fin)
+        if(.not. is_match) exit
+        n_splits = n_splits + 1
+        last_fin = fin
+        isplit = isplit + 1
+        istart = last_fin+1
+      end do
+      if(last_fin <= len_trim(str)) n_splits = n_splits + 1
+    end if
+
+    if(n_splits == 0) return
+
+    if(allocated(re_split)) deallocate(re_split)
+    allocate(re_split(n_splits))
+
+    istart = 1
+    isplit = 1
+    re_split = ""
+
+    is_match = run_nfa_full(nfa, trim(str), istart, finish=fin)
+    if(is_match) then
+      re_split(1) = str(1:istart-1)
+      last_fin = fin
+      istart = last_fin+1
+      isplit = 2
+      do while(istart <= len_trim(str))
+        is_match = run_nfa_full(nfa, trim(str), istart, finish=fin)
+        if(.not. is_match) exit
+        re_split(isplit) = str(last_fin+1:istart-1)
+        last_fin = fin
+        isplit = isplit + 1
+        istart = last_fin+1
+      end do
+      if(last_fin < len_trim(str)) re_split(isplit) = str(last_fin+1:)
+    end if
+
+    call deallocate_list(allocated_states)
+    if(n_states /= 0) stop "Some states are still allocated!"
+
+  end function re_split
 
 end module regex

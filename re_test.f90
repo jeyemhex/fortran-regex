@@ -121,17 +121,17 @@ program re_test
   call test("^(a(b(c)))(d(e(f)))(h(i(j)))(k(l(m)))$"     , "abcdefhijklm"              , .true. , "abcdefhijklm"              )
 
  ! Random tests for finding numbers
-  call test("^\d+(\.\d*)?$"             , "0.63"   , .true. , "0.63" )
-  call test("^\d+(\.\d*)?$"             , "724"    , .true. , "724"  )
-  call test("^\d+(\.\d*)?$"             , "6.2_dp" , .false.         )
-  call test("^\d+(\.\d*)?$"             , "6."     , .true. , "6."   )
-  call test("^\d+(\.\d*)?$"             , ".32"    , .false.         )
-  call test("^(\d+\.\d*|\d*\.\d+|\d+)$" , ".32"    , .true. , ".32"  )
-  call test("^.+\d\d\d$"                , "x123"   , .true. , "x123" )
-  call test("^.+\d\d\d$"                , "x1234"  , .true. , "x1234")
-  call test("^.+\d\d\d$"                , "xx123"  , .true. , "xx123")
-  call test("^.+\d\d\d$"                , "12345"  , .true. , "12345")
-  call test("^.+\d\d\d$"                , "123"    , .false.         )
+  call test("^(\d+(\.\d*)?)$"             , "0.63"   , .true. , "0.63" )
+  call test("^(\d+(\.\d*)?)$"             , "724"    , .true. , "724"  )
+  call test("^(\d+(\.\d*)?)$"             , "6.2_dp" , .false.         )
+  call test("^(\d+(\.\d*)?)$"             , "6."     , .true. , "6."   )
+  call test("^(\d+(\.\d*)?)$"             , ".32"    , .false.         )
+  call test("^((\d+\.\d*|\d*\.\d+|\d+))$" , ".32"    , .true. , ".32"  )
+  call test("^(.+\d\d\d)$"                , "x123"   , .true. , "x123" )
+  call test("^(.+\d\d\d)$"                , "x1234"  , .true. , "x1234")
+  call test("^(.+\d\d\d)$"                , "xx123"  , .true. , "xx123")
+  call test("^(.+\d\d\d)$"                , "12345"  , .true. , "12345")
+  call test("^(.+\d\d\d)$"                , "123"    , .false.         )
 
   print *, " "
   select case (ntests)
