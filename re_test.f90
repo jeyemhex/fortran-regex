@@ -3,14 +3,14 @@ program re_test
   implicit none
 
   character(len=120)  ::  failed(6,1000)
-  integer ::  ifail, nfails, ntests
+  integer ::  ifail, nfails, ntests, i
 
   nfails = 0
   ntests = 0
   failed = ""
 
-  call test("(ab)c"    , "abc"   , .true. , "abc"   )
-  call test("^(ab|xx)?c$"    , "abc"   , .true. , "abc"   )
+  call test("(ab)c"       , "abc" , .true. , "abc"   )
+  call test("^(ab|xx)?c$" , "abc" , .true. , "abc"   )
 
  ! Single character matching
   call test("a"    , "a"   , .true. , "a"   )
@@ -98,11 +98,11 @@ program re_test
   call test("abc?"  , "abc" , .true. , "abc" )
   call test("abx?"  , "abc" , .true. , "ab"  )
 
-  call test("abc"   , "ababc",.true. , "abc" )
-  call test("cat"   , "He captured a catfish for his cat", .true. , "cat")
-  call test("hel*o?", "hello", .true., "hello")
-  call test("hel*o?", "hell", .true., "hell")
-  call test("hel*o?", "heo", .true., "heo")
+  call test("abc"    , "ababc"                             , .true. , "abc"   )
+  call test("cat"    , "He captured a catfish for his cat" , .true. , "cat"   )
+  call test("hel*o?" , "hello"                             , .true. , "hello" )
+  call test("hel*o?" , "hell"                              , .true. , "hell"  )
+  call test("hel*o?" , "heo"                               , .true. , "heo"   )
 
   ! Random tests for finding word boundaries
   call test("^\w+ \w+$"            , "hello world"   , .false.                  )
@@ -151,10 +151,10 @@ program re_test
 
 contains
   subroutine test(re, str, succ, res)
-    character(len=*), intent(in)  :: re
-    character(len=*), intent(in)  :: str
-    logical,          intent(in)  :: succ
-    character(len=*), intent(in), optional  ::  res
+    character(len=*), intent(in)           :: re
+    character(len=*), intent(in)           :: str
+    logical,          intent(in)           :: succ
+    character(len=*), intent(in), optional :: res
 
     logical             :: local_succ
     character(len=120)  :: local_res

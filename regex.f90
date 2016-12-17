@@ -8,8 +8,12 @@
 !   https://swtch.com/~rsc/regexp. Many thanks to Russ for his excellent       !
 !   webpage!                                                                   !
 !                                                                              !
-!==============================================================================!
-! Author: Edward Higgins, 2016-02-01                                           !
+!------------------------------------------------------------------------------!
+! Author:  Edward Higgins <ed.j.higgins@gmail.com>                             !
+!------------------------------------------------------------------------------!
+! Version: 0.1.1, 2016-02-01                                                   !
+!------------------------------------------------------------------------------!
+! This code is distributed under the MIT license.                              !
 !==============================================================================!
 
 module regex
@@ -35,7 +39,7 @@ module regex
   integer,  parameter ::  or_op        = 304 ! | operator (a or b)
   integer,  parameter ::  cat_op       = 305 ! . operator (cats 2 fragments)
   integer,  parameter ::  open_par_op  = 306 ! ( operator (for constructing match list)
-  integer,  parameter ::  close_par_op = 307 ! ( operator (for constructing match list)
+  integer,  parameter ::  close_par_op = 307 ! ) operator (for constructing match list)
 
   ! NFA special matches
   integer,  parameter ::  any_ch       = 401 ! .  match (anything)
@@ -88,17 +92,6 @@ module regex
 
 contains
 
-  function new_frag(s, l)
-    type(frag), pointer ::  new_frag
-    type(state),    pointer,  intent(in)  ::  s
-    type(ptr_list), pointer,  intent(in)  ::  l
-
-    allocate(new_frag)
-    new_frag%start => s
-    new_frag%out1  => l
-
-  end function new_frag
-
   subroutine print_pf(pf)
     integer,  intent(in)  ::  pf(:)
 
@@ -109,62 +102,61 @@ contains
         case(null_st)
           exit print_loop
         case(1:255)
-          write(*,'(A7,A4)'), achar(pf(i)) // "   "
+          write(*,'(A7,A4)') achar(pf(i)) // "   "
         case(open_par_op)
-          write(*,'(A7,A5)'), "OP ( "
+          write(*,'(A7,A5)') "OP ( "
         case(close_par_op)
-          write(*,'(A7,A5)'), "CL ) "
+          write(*,'(A7,A5)') "CL ) "
         case(cat_op)
-          write(*,'(A7,A5)'), "CAT  "
+          write(*,'(A7,A5)') "CAT  "
         case(plus_op)
-          write(*,'(A7,A5)'), "PLUS "
+          write(*,'(A7,A5)') "PLUS "
         case(or_op)
-          write(*,'(A7,A5)'), "OR   "
+          write(*,'(A7,A5)') "OR   "
         case(quest_op)
-          write(*,'(A7,A5)'), "QUE  "
+          write(*,'(A7,A5)') "QUE  "
         case(star_op)
-          write(*,'(A7,A5)'), "STAR "
+          write(*,'(A7,A5)') "STAR "
 
         case(split_st)
-          write(*,'(A7,A5)'), "SPLIT"
+          write(*,'(A7,A5)') "SPLIT"
         case(match_st)
-          write(*,'(A7,A5)'), "MATCH"
+          write(*,'(A7,A5)') "MATCH"
         case(any_ch)
-          write(*,'(A7,A5)'), ".    "
+          write(*,'(A7,A5)') ".    "
         case(start_ch)
-          write(*,'(A7,A5)'), "START"
+          write(*,'(A7,A5)') "START"
         case(finish_ch)
-          write(*,'(A7,A5)'), "FIN  "
+          write(*,'(A7,A5)') "FIN  "
         case(alpha_ch)
-          write(*,'(A7,A5)'), "\a   "
+          write(*,'(A7,A5)') "\a   "
         case(numeric_ch)
-          write(*,'(A7,A5)'), "\d   "
+          write(*,'(A7,A5)') "\d   "
         case(word_ch)
-          write(*,'(A7,A5)'), "\w   "
+          write(*,'(A7,A5)') "\w   "
         case(space_ch)
-          write(*,'(A7,A5)'), "\s   "
+          write(*,'(A7,A5)') "\s   "
         case(n_alpha_ch)
-          write(*,'(A7,A5)'), "\A   "
+          write(*,'(A7,A5)') "\A   "
         case(n_numeric_ch)
-          write(*,'(A7,A5)'), "\D   "
+          write(*,'(A7,A5)') "\D   "
         case(n_word_ch)
-          write(*,'(A7,A5)'), "\W   "
+          write(*,'(A7,A5)') "\W   "
         case(n_space_ch)
-          write(*,'(A7,A5)'), "\S   "
+          write(*,'(A7,A5)') "\S   "
         case default
           write(*,'(A22,I4)') "Unrecognised character", pf(i)
           stop
       end select
     end do print_loop
   end subroutine print_pf
-  
+
   recursive subroutine print_state(s, depth)
     type(state), pointer, intent(in) ::  s
     integer,  optional,   intent(in) :: depth
 
     integer ::  local_depth, i
     type(state), pointer  ::  tmp_s
-    character(len=12), save :: ws
 
     local_depth=0
     if(present(depth)) then
@@ -181,37 +173,37 @@ contains
         end do
         select case (tmp_s%c)
         case(1:255)
-          write(*,'(A7,A4)'), "State: ", achar(tmp_s%c) // "   "
+          write(*,'(A7,A4)') "State: ", achar(tmp_s%c) // "   "
         case(split_st)
-          write(*,'(A7,A5)'), "State: ", "SPLIT"
+          write(*,'(A7,A5)') "State: ", "SPLIT"
         case(match_st)
-          write(*,'(A7,A5)'), "State: ", "MATCH"
+          write(*,'(A7,A5)') "State: ", "MATCH"
         case(open_par_op)
-          write(*,'(A7,A5)'), "State: ", "OP ( "
+          write(*,'(A7,A5)') "State: ", "OP ( "
         case(close_par_op)
-          write(*,'(A7,A5)'), "State: ", "CL ) "
+          write(*,'(A7,A5)') "State: ", "CL ) "
         case(any_ch)
-          write(*,'(A7,A5)'), "State: ", ".    "
+          write(*,'(A7,A5)') "State: ", ".    "
         case(start_ch)
-          write(*,'(A7,A5)'), "State: ", "START"
+          write(*,'(A7,A5)') "State: ", "START"
         case(finish_ch)
-          write(*,'(A7,A5)'), "State: ", "FIN  "
+          write(*,'(A7,A5)') "State: ", "FIN  "
         case(alpha_ch)
-          write(*,'(A7,A5)'), "State: ", "\a   "
+          write(*,'(A7,A5)') "State: ", "\a   "
         case(numeric_ch)
-          write(*,'(A7,A5)'), "State: ", "\d   "
+          write(*,'(A7,A5)') "State: ", "\d   "
         case(word_ch)
-          write(*,'(A7,A5)'), "State: ", "\w   "
+          write(*,'(A7,A5)') "State: ", "\w   "
         case(space_ch)
-          write(*,'(A7,A5)'), "State: ", "\s   "
+          write(*,'(A7,A5)') "State: ", "\s   "
         case(n_alpha_ch)
-          write(*,'(A7,A5)'), "State: ", "\A   "
+          write(*,'(A7,A5)') "State: ", "\A   "
         case(n_numeric_ch)
-          write(*,'(A7,A5)'), "State: ", "\D   "
+          write(*,'(A7,A5)') "State: ", "\D   "
         case(n_word_ch)
-          write(*,'(A7,A5)'), "State: ", "\W   "
+          write(*,'(A7,A5)') "State: ", "\W   "
         case(n_space_ch)
-          write(*,'(A7,A5)'), "State: ", "\S   "
+          write(*,'(A7,A5)') "State: ", "\S   "
         case default
           stop "Unrecognised character in print_state"
       end select
@@ -252,25 +244,45 @@ contains
 
   end function append
 
-  subroutine deallocate_list(l)
+  subroutine deallocate_list(l, keep_states)
     type(ptr_list), pointer,  intent(inout) ::  l
+    logical,        optional, intent(in)    ::  keep_states
 
     type(ptr_list), pointer ::  tmp_l
+    logical ::  local_ks
+    integer ::  ierr
+
+    local_ks = .false.
+    if(present(keep_states)) local_ks = keep_states
+
+    if(.not. associated(l)) return
 
     do while(associated(l%next))
       tmp_l => l
       l => tmp_l%next
-      if(associated(tmp_l%s)) then
+      if((associated(tmp_l%s)) .and. (.not. local_ks)) then
         deallocate(tmp_l%s)
         n_states = n_states - 1
+      else
+        tmp_l%s => null()
       end if
-      deallocate(tmp_l)
+      tmp_l%next => null()
+      deallocate(tmp_l, stat=ierr)
+      if(ierr /= 0) stop "Unable to deallocate list"
+      tmp_l => null()
     end do
-    if(associated(l%s)) then
+
+    if((associated(l%s)) .and. (.not. local_ks)) then
       deallocate(l%s)
       n_states = n_states - 1
+    else
+      l%s => null()
     end if
-    deallocate(l)
+
+    l%next => null()
+    !deallocate(l, stat=ierr)
+    !if(ierr /= 0) stop "something"
+
     l => null()
 
   end subroutine deallocate_list
@@ -464,8 +476,6 @@ contains
         escaped = .false.
       end if
 
-
-
       re_loc = re_loc + 1
 
     end do
@@ -487,24 +497,28 @@ contains
 
   end function re_to_pf
 
-
   function pf_to_nfa(postfix, states)
     type(state), pointer  ::  pf_to_nfa
     integer,  intent(in)  ::  postfix(pf_buff_size)
     type(ptr_list), pointer,  intent(inout) ::  states
 
     integer ::  pf_loc, s_loc
-    type(frag_stack), allocatable ::  stack(:)
+    type(frag_stack), allocatable ::  stack(:), allocated_frags(:)
     type(frag),   pointer ::  stack_p, e1, e2, e
     type(state),  pointer ::  s
     type(state),  pointer ::  matchstate
     type(state),  pointer ::  nullstate
 
-    integer ::  matchloc, nullloc
-    integer ::  ierr
+    integer ::  nfrags, i, ierr
 
-    allocate(stack(pf_stack_size), stat=ierr)
-    if(ierr /= 0) stop "Unable to allocate stack"
+    nfrags = 0
+    allocate(stack(pf_stack_size), allocated_frags(pf_stack_size), stat=ierr)
+    if(ierr /= 0) stop "Unable to allocate stacks"
+
+    do i = 1, pf_stack_size
+      stack(i)%elem => null()
+      allocated_frags(i)%elem => null()
+    end do
 
     if(states%side /= 0) stop "Trying to build nfa with in-use states"
 
@@ -514,9 +528,6 @@ contains
     stack_p => stack(1)%elem
     pf_loc  = 1
     s_loc   = 1
-
-    matchloc = loc(matchstate)
-    nullloc = loc(nullstate)
 
     do while(postfix(pf_loc) /= null_st)
       s => null()
@@ -578,11 +589,35 @@ contains
     if(matchstate%c /= match_st) stop "***** Matchstate has changed!"
     if(nullstate%c /= null_st) stop "***** Nullstate has changed!"
 
-    deallocate(stack, stat=ierr)
-    if(ierr /= 0) stop "Unable to deallocate stack"
+    do i = 1, nfrags
+      if(associated(allocated_frags(i)%elem)) then
+        call deallocate_list(allocated_frags(i)%elem%out1, keep_states=.true.)
+        if(associated(allocated_frags(i)%elem%start)) allocated_frags(i)%elem%start => null()
+        deallocate(allocated_frags(i)%elem, stat=ierr)
+        if(ierr /= 0) stop "Unable to deallocate fragment"
+        allocated_frags(i)%elem => null()
+      end if
+    end do
+
+    deallocate(stack, allocated_frags, stat=ierr)
+    if(ierr /= 0) stop "Unable to deallocate stacks"
     e => null()
 
   contains
+
+    function new_frag(s, l)
+      type(frag), pointer ::  new_frag
+      type(state),    pointer,  intent(in)  ::  s
+      type(ptr_list), pointer,  intent(in)  ::  l
+
+      allocate(new_frag)
+      new_frag%start => s
+      new_frag%out1  => l
+
+      nfrags = nfrags + 1
+      allocated_frags(nfrags)%elem => new_frag
+
+    end function new_frag
 
     function new_state(c, out1, out2)
       type(state), pointer  ::  new_state
@@ -606,7 +641,7 @@ contains
       tmp_l => append(states, new_list(new_state, -1))
       states => tmp_l
 
-  end function new_state
+    end function new_state
 
     subroutine push(f)
       type(frag), intent(in), pointer  ::  f
@@ -1003,8 +1038,8 @@ contains
     postfix = re_to_pf(trim(re))
     nfa => pf_to_nfa(postfix, allocated_states)
 
-!    call print_pf(postfix)
-!    call print_state(nfa)
+    call print_pf(postfix)
+    call print_state(nfa)
 
     re_match = run_nfa_full(nfa, trim(str), istart)
 
@@ -1021,41 +1056,40 @@ contains
     integer                 ::  postfix(pf_buff_size)
     type(state),    pointer ::  nfa
     type(ptr_list), pointer ::  allocated_states
-    integer ::  istart, fin, ifin
+    integer ::  istart, ifin
     logical :: match
 
     n_states = 0
 
     istart = 1
+    ifin = -1
     nfa => null()
     allocated_states => new_list(null(), 0)
 
-    re_match_str = ""
+    re_match_str = " "
 
     if(len_trim(re) < 1) stop "Regular expression cannot be of length 0"
     postfix = re_to_pf(trim(re))
     nfa => pf_to_nfa(postfix, allocated_states)
 
-    match = run_nfa_full(nfa, trim(str), istart, finish=fin)
-    if(match) re_match_str = str(istart:fin)
+    match = run_nfa_fast(nfa, trim(str), istart, finish=ifin)
+    if(match) re_match_str = str(istart:ifin)
 
     call deallocate_list(allocated_states)
     if(n_states /= 0) stop "Some states are still allocated!"
 
   end function re_match_str
 
-  function re_split(re, str)
-    character(len=pf_buff_size), allocatable   :: re_split(:)
+  subroutine re_split(re, str, output)
     character(len=*), intent(in)  ::  re
     character(len=*), intent(in)  ::  str
+    character(len=*), intent(inout), allocatable   :: output(:)
 
-    character(len=len_trim(str))  ::  match
     type(state),    pointer ::  nfa
     type(ptr_list), pointer ::  allocated_states
     integer                 ::  postfix(pf_buff_size)
     logical                 ::   is_match
 
-    integer :: first, last, i, match_len
     integer :: istart, fin, isplit, last_fin, n_splits
 
     n_states = 0
@@ -1072,7 +1106,7 @@ contains
     isplit = 1
     n_splits = 0
 
-    is_match = run_nfa_fast(nfa, trim(str), istart, finish=fin)
+    is_match = run_nfa_full(nfa, trim(str), istart, finish=fin)
     if(is_match) then
       n_splits = n_splits + 1
       last_fin = fin
@@ -1091,33 +1125,33 @@ contains
 
     if(n_splits == 0) return
 
-    if(allocated(re_split)) deallocate(re_split)
-    allocate(re_split(n_splits))
+    if(allocated(output)) deallocate(output)
+    allocate(output(n_splits))
 
     istart = 1
     isplit = 1
-    re_split = ""
+    output = " "
 
-    is_match = run_nfa_full(nfa, trim(str), istart, finish=fin)
+    is_match = run_nfa_fast(nfa, trim(str), istart, finish=fin)
     if(is_match) then
-      re_split(1) = str(1:istart-1)
+      output(1) = str(1:istart-1)
       last_fin = fin
       istart = last_fin+1
       isplit = 2
       do while(istart <= len_trim(str))
-        is_match = run_nfa_full(nfa, trim(str), istart, finish=fin)
+        is_match = run_nfa_fast(nfa, trim(str), istart, finish=fin)
         if(.not. is_match) exit
-        re_split(isplit) = str(last_fin+1:istart-1)
+        output(isplit) = str(last_fin+1:istart-1)
         last_fin = fin
         isplit = isplit + 1
         istart = last_fin+1
       end do
-      if(last_fin < len_trim(str)) re_split(isplit) = str(last_fin+1:)
+      if(last_fin < len_trim(str)) output(isplit) = str(last_fin+1:)
     end if
 
     call deallocate_list(allocated_states)
     if(n_states /= 0) stop "Some states are still allocated!"
 
-  end function re_split
+  end subroutine re_split
 
 end module regex
