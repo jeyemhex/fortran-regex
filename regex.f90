@@ -24,8 +24,9 @@ module regex
 
   public :: re_match, re_match_str, re_split
 
-  integer,  parameter ::  pf_buff_size  = 8000
-  integer,  parameter ::  pf_stack_size = 1000
+  integer,  parameter ::  pf_buff_size  = 8000  ! Maximum size of the postfix buffer
+  integer,  parameter ::  pf_stack_size = 4000  ! Maximum size of the postfix stack
+  integer,  parameter ::  nfa_max_print = 16    ! Maximum depth for print_state
 
   ! Special NFA states
   integer,  parameter ::  null_st      = -1  ! denotes a NULL node in the nfa
@@ -60,13 +61,19 @@ module regex
     integer ::  n_alt
   end type paren_list
 
+  ! Full NFA and list of states
+  type, public :: nfa_type
+    type(state),    pointer :: head
+    type(ptr_list), pointer :: states
+    integer                 :: n_states
+  end type nfa_type
+
   ! State in the NFA
   type, public  :: state
     integer               ::  c
     type(state),  pointer ::  out1 => null()
     type(state),  pointer ::  out2 => null()
     integer               ::  last_list
-    logical               ::  head = .false.
   end type state
 
   ! List of pointers to states
@@ -87,12 +94,22 @@ module regex
     type(frag), pointer ::  elem
   end type frag_stack
 
-  integer :: n_states
-  integer ::  submatch_pars(pf_stack_size)
+!EJH!   integer ::  submatch_pars(pf_stack_size)
 
 contains
-
-  subroutine print_pf(pf)
+  !------------------------------------------------------------------------------!
+    subroutine print_pf(pf)                                                      !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to print out a postfix expression in a human readable manner       !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   integer, intent(in) :: pf(:)                                               !
+  !     Postfix expression stored as an array of integers                        !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
     integer,  intent(in)  ::  pf(:)
 
     integer ::  i
@@ -151,7 +168,24 @@ contains
     end do print_loop
   end subroutine print_pf
 
-  recursive subroutine print_state(s, depth)
+  !------------------------------------------------------------------------------!
+    recursive subroutine print_state(s, depth)                                   !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to print out an NFA state in a human readable manner. It is        !
+  !   recursively called on all outputs of the state until nfa_max_print is      !
+  !   reached.                                                                   !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   type(state), pointer, intent(in) :: s                                      !
+  !     State to be printed                                                      !
+  !                                                                              !
+  !   integer, optional ,   intent(in) :: depth = 0                              !
+  !     Depth of the state into the NFA                                          !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
     type(state), pointer, intent(in) ::  s
     integer,  optional,   intent(in) :: depth
 
@@ -163,7 +197,7 @@ contains
       local_depth = depth
     end if
 
-    if(local_depth > 16) then
+    if(local_depth > nfa_max_print) then
       print *, "Trying to print a superdeep structure!"
     else
       tmp_s => s
@@ -214,7 +248,26 @@ contains
 
   end subroutine print_state
 
-  function new_list(outp, side)
+  !------------------------------------------------------------------------------!
+    function new_list(outp, side)                                                !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to create a new state list, with outp as the first state.          !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   type(state),    pointer,  intent(in)  ::  outp                             !
+  !     First NFA state in the list                                              !
+  !                                                                              !
+  !   integer,                  intent(in)  ::  side                             !
+  !     Which side of the the state goes on                                      !
+  !------------------------------------------------------------------------------!
+  ! RETURNS                                                                      !
+  !   type(ptr_list), pointer                                                    !
+  !     Pointer to the newly created list                                        !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
     type(ptr_list), pointer :: new_list
     type(state),    pointer,  intent(in)  ::  outp
     integer,                  intent(in)  ::  side
@@ -230,7 +283,26 @@ contains
 
   end function new_list
 
-  function append(l1, l2)
+  !------------------------------------------------------------------------------!
+    function append(l1, l2)                                                      !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to append ptr_list l2 to the end of ptr_list l1.                   !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   type(ptr_list), pointer,  intent(inout) :: l1                              !
+  !     list to be appended to                                                   !
+  !                                                                              !
+  !   type(ptr_list), pointer,  intent(in)    :: l2                              !
+  !     list to be appended                                                      !
+  !------------------------------------------------------------------------------!
+  ! RETURNS                                                                      !
+  !   type(ptr_list), pointer                                                    !
+  !     resultant list                                                           !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
     type(ptr_list), pointer ::  append
     type(ptr_list), pointer,  intent(inout) :: l1
     type(ptr_list), pointer,  intent(in)    :: l2
@@ -244,9 +316,28 @@ contains
 
   end function append
 
-  subroutine deallocate_list(l, keep_states)
+  !------------------------------------------------------------------------------!
+    subroutine deallocate_list(l, keep_states, n_states)                         !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to deallocate a ptr_list and, optionally, the NFA states in it.    !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   type(ptr_list), pointer,  intent(inout) ::  l                              !
+  !     Pointer list to be deallocated                                           !
+  !                                                                              !
+  !   logical,        optional, intent(in)    ::  keep_states = false            !
+  !     Whether or not the states within the list should be deallocated as well  !
+  !                                                                              !
+  !   integer,        optional, intent(inout) ::  n_states = 0                   !
+  !     Number of allocated states in the list                                   !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
     type(ptr_list), pointer,  intent(inout) ::  l
     logical,        optional, intent(in)    ::  keep_states
+    integer,        optional, intent(inout) ::  n_states
 
     type(ptr_list), pointer ::  tmp_l
     logical ::  local_ks
@@ -262,32 +353,47 @@ contains
       l => tmp_l%next
       if((associated(tmp_l%s)) .and. (.not. local_ks)) then
         deallocate(tmp_l%s)
-        n_states = n_states - 1
+        if(present(n_states)) n_states = n_states - 1
       else
         tmp_l%s => null()
       end if
       tmp_l%next => null()
       deallocate(tmp_l, stat=ierr)
-      if(ierr /= 0) stop "Unable to deallocate list"
+      if(ierr /= 0) stop "Unable to deallocate list tmp_l"
       tmp_l => null()
     end do
 
     if((associated(l%s)) .and. (.not. local_ks)) then
-      deallocate(l%s)
-      n_states = n_states - 1
+      deallocate(l%s, stat=ierr)
+      if(ierr /= 0) stop "Unable to deallocate l%s"
+      if(present(n_states)) n_states = n_states - 1
     else
       l%s => null()
     end if
 
-    l%next => null()
-    !deallocate(l, stat=ierr)
-    !if(ierr /= 0) stop "something"
-
+!EJH!     ! If this is uncommented, it segfaults.. this is bad!
+!EJH!     if(associated(l)) deallocate(l, stat=ierr)
+!EJH!     if(ierr /= 0) stop "Unable to deallocate list l"
     l => null()
 
   end subroutine deallocate_list
 
-  subroutine patch(l, s)
+  !------------------------------------------------------------------------------!
+    subroutine patch(l, s)                                                       !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to append state s to every dangling output in ptr_list l.          !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   type(ptr_list), pointer, intent(inout)  ::  l                              !
+  !     List to be patched                                                       !
+  !                                                                              !
+  !   type(state),    pointer, intent(in)     ::  s                              !
+  !     state with which to patch the list                                       !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
     type(ptr_list), pointer, intent(inout)  ::  l
     type(state),    pointer, intent(in)     ::  s
 
@@ -308,7 +414,24 @@ contains
 
   end subroutine patch
 
-  function re_to_pf(re) result(pf)
+  !------------------------------------------------------------------------------!
+    function re_to_pf(re) result(pf)                                             !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to convert a regular expression string to a a postfix expression,  !
+  !   stored in an array of integers.                                            !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   character(len=*),   intent(in) :: re
+  !     Regular expression to be converted to postfix                            !
+  !------------------------------------------------------------------------------!
+  ! RETURNS                                                                      !
+  !   integer ::  pf(pf_buff_size)                                               !
+  !     Postfix expression, stored as an array of integers                       !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
     integer ::  pf(pf_buff_size)
     character(len=*),   intent(in) :: re
 
@@ -497,30 +620,94 @@ contains
 
   end function re_to_pf
 
-  function pf_to_nfa(postfix, states)
-    type(state), pointer  ::  pf_to_nfa
+  !------------------------------------------------------------------------------!
+    subroutine allocate_nfa(nfa)                                                 !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to allocate and initialise the constituent parts of the nfa type.  !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   type(nfa), intent(inout) :: nfa                                            !
+  !     Finite automaton to be allocated                                         !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-12-29                                                 !
+  !------------------------------------------------------------------------------!
+    type(nfa_type), intent(inout) :: nfa
+
+    nfa%head => null()
+    nfa%states => new_list(null(), 0)
+    nfa%n_states = 0
+
+  end subroutine allocate_nfa
+
+  !------------------------------------------------------------------------------!
+    subroutine deallocate_nfa(nfa)                                               !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to deallocate the constituent parts of the nfa type.               !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   type(nfa), intent(inout) :: nfa                                            !
+  !     Finite automaton to be allocated                                         !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-12-29                                                 !
+  !------------------------------------------------------------------------------!
+    type(nfa_type), intent(inout) :: nfa
+
+    call deallocate_list(nfa%states, keep_states=.false., n_states = nfa%n_states)
+    nfa%head => null()
+    if(nfa%n_states /= 0) stop "Some states are still allocated!"
+
+  end subroutine deallocate_nfa
+
+  !------------------------------------------------------------------------------!
+    function pf_to_nfa(postfix) result(nfa)                                      !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to convert a postfix expression to a Nondeterministic Finite       !
+  !   Automaton, with the head stored in state 'states'                          !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   integer, intent(in) :: postfix(pf_buff_size)                               !
+  !     Postfix expression stored as an array of integers                        !
+  !------------------------------------------------------------------------------!
+  ! RETURNS                                                                      !
+  !   type(nfa)                                                                  !
+  !     Resultant NFA                                                            !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
+    type(nfa_type)  ::  nfa
     integer,  intent(in)  ::  postfix(pf_buff_size)
-    type(ptr_list), pointer,  intent(inout) ::  states
 
     integer ::  pf_loc, s_loc
     type(frag_stack), allocatable ::  stack(:), allocated_frags(:)
-    type(frag),   pointer ::  stack_p, e1, e2, e
-    type(state),  pointer ::  s
-    type(state),  pointer ::  matchstate
-    type(state),  pointer ::  nullstate
+    type(frag),     pointer ::  stack_p, e1, e2, e
+    type(state),    pointer ::  s
+    type(state),    pointer ::  matchstate
+    type(state),    pointer ::  nullstate
+    type(ptr_list), pointer :: new_l
 
     integer ::  nfrags, i, ierr
 
+    call allocate_nfa(nfa)
+
     nfrags = 0
-    allocate(stack(pf_stack_size), allocated_frags(pf_stack_size), stat=ierr)
-    if(ierr /= 0) stop "Unable to allocate stacks"
+    allocate(allocated_frags(pf_stack_size), stat=ierr)
+    if(ierr /= 0) stop "Unable to allocate frag stack"
+    allocate(stack(pf_stack_size),stat=ierr)
+    if(ierr /= 0) stop "Unable to allocate stack"
+
 
     do i = 1, pf_stack_size
       stack(i)%elem => null()
       allocated_frags(i)%elem => null()
     end do
 
-    if(states%side /= 0) stop "Trying to build nfa with in-use states"
+    if(nfa%states%side /= 0) stop "Trying to build nfa with in-use states"
 
     matchstate => new_state(match_st, null(), null())
     nullstate => new_state(null_st, null(), null())
@@ -552,7 +739,7 @@ contains
         case(quest_op)
           e => pop()
           s => new_state( split_st, e%start, nullstate )
-          call push( new_frag(s, append(e%out1, new_list(s, 2)))  )
+          call push( new_frag(s, append(e%out1, new_list(s,2)))  )
           e => null()
 
         case(star_op)
@@ -583,8 +770,7 @@ contains
     if(s_loc /= 1) stop "Stack is not empty on exit"
     call patch(e%out1, matchstate)
 
-    pf_to_nfa => e%start
-    pf_to_nfa%head = .true.
+    nfa%head => e%start
 
     if(matchstate%c /= match_st) stop "***** Matchstate has changed!"
     if(nullstate%c /= null_st) stop "***** Nullstate has changed!"
@@ -605,7 +791,12 @@ contains
 
   contains
 
-    function new_frag(s, l)
+    !------------------------------------------------------------------------------!
+      function new_frag(s, l)                                                      !
+    !------------------------------------------------------------------------------!
+    ! DESCRPTION                                                                   !
+    !   Routine to create a new NFA fragment.                                      !
+    !------------------------------------------------------------------------------!
       type(frag), pointer ::  new_frag
       type(state),    pointer,  intent(in)  ::  s
       type(ptr_list), pointer,  intent(in)  ::  l
@@ -619,7 +810,12 @@ contains
 
     end function new_frag
 
-    function new_state(c, out1, out2)
+    !------------------------------------------------------------------------------!
+      function new_state(c, out1, out2)                                            !
+    !------------------------------------------------------------------------------!
+    ! DESCRPTION                                                                   !
+    !   Routine to create a new NFA state, outputting to out1 and out2.            !
+    !------------------------------------------------------------------------------!
       type(state), pointer  ::  new_state
       integer,                intent(in)  ::  c
       type(state),  pointer,  intent(in)  ::  out1, out2
@@ -631,19 +827,23 @@ contains
       tmp_l => null()
       allocate(new_state, stat=ierr)
       if(ierr /= 0) stop "Unable to allocate new_state"
-      n_states = n_states + 1
       new_state%last_list = 0
       new_state%c = c
       new_state%out1 => out1
       new_state%out2 => out2
-      new_state%head = .false.
 
-      tmp_l => append(states, new_list(new_state, -1))
-      states => tmp_l
+      tmp_l => append(nfa%states, new_list(new_state, -1))
+      nfa%states => tmp_l
+      nfa%n_states = nfa%n_states + 1
 
     end function new_state
 
-    subroutine push(f)
+    !------------------------------------------------------------------------------!
+      subroutine push(f)                                                           !
+    !------------------------------------------------------------------------------!
+    ! DESCRPTION                                                                   !
+    !   Routine to push NFA fragment onto the stack.                               !
+    !------------------------------------------------------------------------------!
       type(frag), intent(in), pointer  ::  f
 
       s_loc = s_loc + 1
@@ -651,7 +851,12 @@ contains
 
     end subroutine push
 
-    function pop()
+    !------------------------------------------------------------------------------!
+      function pop()                                                               !
+    !------------------------------------------------------------------------------!
+    ! DESCRPTION                                                                   !
+    !   Routine to push an NFA off the stack, and returning it.                    !
+    !------------------------------------------------------------------------------!
       type(frag), pointer :: pop
 
       pop => stack(s_loc)%elem
@@ -661,9 +866,36 @@ contains
 
   end function pf_to_nfa
 
-  function run_nfa_fast(nfa, str, start, finish) result(res)
+  !------------------------------------------------------------------------------!
+    function run_nfa_fast(nfa, str, start, finish) result(res)                   !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to simulate the NFA 'nfa' o n the string 'str', starting 'start'   !
+  !   characters in. This routine uses the fast algorithm. This algorithm        !
+  !   doesn't allow submatching.                                                 !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   type(nfa_type),   intent(inout)             ::  nfa                        !
+  !     NFA to be simulated                                                      !
+  !                                                                              !
+  !   character(len=*), intent(in)                ::  str                        !
+  !     String to be searched                                                    !
+  !                                                                              !
+  !   integer,          intent(inout)             ::  start                      !
+  !     Where in str to start. On exit, returns the start of the match if        !
+  !     matched                                                                  !
+  !                                                                              !
+  !   integer,          intent(out),    optional  ::  finish                     !
+  !     Last character of matched string                                         !
+  !------------------------------------------------------------------------------!
+  ! RETURNS                                                                      !
+  !   TRUE if there is a match, FALSE otherwise.                                 !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
     logical :: res
-    type(state),      intent(inout),  pointer   ::  nfa
+    type(nfa_type),   intent(inout)             ::  nfa
     character(len=*), intent(in)                ::  str
     integer,          intent(inout)             ::  start
     integer,          intent(out),    optional  ::  finish
@@ -681,11 +913,11 @@ contains
     integer ::  ch_loc, n_cl, n_nl, n_t
     integer ::  istart, i, ierr
 
-    allocate(l1(1:n_states), l2(1:n_states), stat=ierr)
+    allocate(l1(1:nfa%n_states), l2(1:nfa%n_states), stat=ierr)
     if(ierr /= 0) stop "Error allocating l1,l2 in run_nfa_fast"
 
     start_loop: do istart = start, len(str)
-      do i = 1, n_states
+      do i = 1, nfa%n_states
         l1(i)%s => null()
         l2(i)%s => null()
       end do
@@ -693,7 +925,7 @@ contains
       n_cl = 1
       n_nl = 1
 
-      c_list => start_list(l1, n_cl, nfa)
+      c_list => start_list(l1, n_cl, nfa%head)
       n_list => l2
 
       ch_loc = istart
@@ -729,7 +961,12 @@ contains
 
   contains
 
-    function start_list(l, n_l, s)
+    !------------------------------------------------------------------------------!
+      function start_list(l, n_l, s)                                               !
+    !------------------------------------------------------------------------------!
+    ! DESCRPTION                                                                   !
+    !   Routine to initialise a list of active states.                             !
+    !------------------------------------------------------------------------------!
       type(list), pointer ::  start_list(:)
       type(list),   target,   intent(inout)  ::  l(:)
       integer,                intent(inout)  ::  n_l
@@ -743,7 +980,13 @@ contains
 
     end function start_list
 
-    subroutine step()
+    !------------------------------------------------------------------------------!
+      subroutine step()                                                            !
+    !------------------------------------------------------------------------------!
+    ! DESCRPTION                                                                   !
+    !   Routine to step through one node of the NFA for each state in the current  !
+    !   list.                                                                      !
+    !------------------------------------------------------------------------------!
       integer ::  i
       type(state),  pointer ::  s => null()
 
@@ -838,7 +1081,12 @@ contains
 
     end subroutine step
 
-    function is_match(l, n_l)
+    !------------------------------------------------------------------------------!
+      function is_match(l, n_l)                                                    !
+    !------------------------------------------------------------------------------!
+    ! DESCRPTION                                                                   !
+    !   Routine to check if any nodes in the list l are match states in the NFA.   !
+    !------------------------------------------------------------------------------!
       logical ::  is_match
       type(list), pointer,  intent(in)  ::  l(:)
       integer,              intent(in)  ::  n_l
@@ -855,7 +1103,13 @@ contains
 
     end function is_match
 
-    recursive subroutine add_state(l, n_l, s)
+    !------------------------------------------------------------------------------!
+      recursive subroutine add_state(l, n_l, s)                                    !
+    !------------------------------------------------------------------------------!
+    ! DESCRPTION                                                                   !
+    !   Routine to add the state s to the end of list l. If s is a split_st, add   !
+    !   its output instead.                                                        !
+    !------------------------------------------------------------------------------!
       type(list),   pointer,  intent(inout) ::  l(:)
       integer,                intent(inout) ::  n_l
       type(state),  pointer,  intent(inout) ::  s
@@ -874,29 +1128,58 @@ contains
 
   end function run_nfa_fast
 
-  recursive function run_nfa_full(nfa, str, start, finish, head) result(res)
+  !------------------------------------------------------------------------------!
+    recursive function run_nfa_full(nfa, str, start, finish, s_in) result(res)   !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to simulate the NFA 'nfa' o n the string 'str', starting 'start'   !
+  !   characters in. This routine uses the slower algorithm. This algorithm      !
+  !   does allow submatching.                                                    !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   type(nfa_type),       intent(inout)           ::  nfa                        !
+  !     NFA to be simulated                                                      !
+  !                                                                              !
+  !   character(len=*),     intent(in)              ::  str                        !
+  !     String to be searched                                                    !
+  !                                                                              !
+  !   integer,              intent(inout)           ::  start                      !
+  !     Where in str to start. On exit, returns the start of the match if        !
+  !     matched                                                                  !
+  !                                                                              !
+  !   integer,              intent(out),  optional  ::  finish                     !
+  !     Last character of matched string                                         !
+  !                                                                              !
+  !   type(state), pointer, intent(in),   optional  ::  s_in                       !
+  !     Node to start on  is the start of the NFA or not.                        !
+  !------------------------------------------------------------------------------!
+  ! RETURNS                                                                      !
+  !   TRUE if there is a match, FALSE otherwise.                                 !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
     logical :: res
-    type(state),      intent(inout),  pointer   ::  nfa
-    character(len=*), intent(in)                ::  str
-    integer,          intent(inout)             ::  start
-    integer,          intent(out),    optional  ::  finish
-    logical,          intent(in),     optional  ::  head
+    type(nfa_type),       intent(inout)           ::  nfa
+    character(len=*),     intent(in)              ::  str
+    integer,              intent(inout)           ::  start
+    integer,              intent(out),  optional  ::  finish
+    type(state), pointer, intent(in),   optional  ::  s_in
 
+    type(state), pointer :: s
     integer ::  istart, fin
 
     res = .false.
     if(present(finish)) finish = -1
     fin = -1
 
-    if(present(head)) then
-      if(.not. head) then
-        istart = start
-        call step()
-      else
-        stop "Don't be a dick..."
-      end if
+    if(present(s_in)) then
+      istart = start
+      s => s_in
+      call step()
     else
       start_loop: do istart = start, len(str)
+        s => nfa%head
         call step()
         if(res) exit start_loop
       end do start_loop
@@ -909,52 +1192,58 @@ contains
 
   contains
 
-    recursive subroutine step()
+    !------------------------------------------------------------------------------!
+      recursive subroutine step()                                                  !
+    !------------------------------------------------------------------------------!
+    ! DESCRPTION                                                                   !
+    !   Routine to step through the NFA. If it does not reach an end, run_nfa_full !
+    !   is re-called.                                                              !
+    !------------------------------------------------------------------------------!
       integer ::  next_start
 
       next_start = -1
       if(istart <= len(str)) then
-        select case(nfa%c)
+        select case(s%c)
           case( match_st )
             res = .true.
             if(present(finish)) finish = istart-1
 
           case( split_st )
-            res = run_nfa_full(nfa%out1, str, istart, fin, head=.false.)
-            if(.not. res) res = run_nfa_full(nfa%out2, str, istart, fin, head=.false.)
+            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
+            if(.not. res) res = run_nfa_full(nfa, str, istart, fin, s_in = s%out2)
 
           case(0:255)
-            if( nfa%c == iachar(str(istart:istart)) ) then
+            if( s%c == iachar(str(istart:istart)) ) then
               next_start = istart + 1
-              res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+              res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end if
 
           case(any_ch)
             next_start = istart + 1
-            res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+            res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
           case(alpha_ch)
             select case( str(istart:istart) )
               case("a":"z","A":"Z")
                 next_start = istart + 1
-                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+                res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
           case(numeric_ch)
             select case( str(istart:istart) )
               case("0":"9")
                 next_start = istart + 1
-                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+                res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
           case(word_ch)
             select case( str(istart:istart) )
               case("a":"z","A":"Z","0":"9","_")
                 next_start = istart + 1
-                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+                res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
           case(space_ch)
             select case( str(istart:istart) )
               case(" ", achar(9), achar(10))
                 next_start = istart + 1
-                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+                res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
 
           case(n_alpha_ch)
@@ -962,55 +1251,55 @@ contains
               case("a":"z","A":"Z")
               case default
                 next_start = istart + 1
-                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+                res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
           case(n_numeric_ch)
             select case( str(istart:istart) )
               case("0":"9")
               case default
                 next_start = istart + 1
-                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+                res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
           case(n_word_ch)
             select case( str(istart:istart) )
               case("a":"z","A":"Z","0:9","_")
               case default
                 next_start = istart + 1
-                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+                res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
           case(n_space_ch)
             select case( str(istart:istart) )
               case(" ", achar(9), achar(10))
               case default
                 next_start = istart + 1
-                res = run_nfa_full(nfa%out1, str, next_start, fin, head=.false.)
+                res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
 
           case(start_ch)
-            if(start == 1) res = run_nfa_full(nfa%out1, str, start, fin, head=.false.)
+            if(start == 1) res = run_nfa_full(nfa, str, start, fin, s_in = s%out1)
 
           case(open_par_op)
-            res = run_nfa_full(nfa%out1, str, istart, fin, head=.false.)
+            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
 
           case(close_par_op)
-            res = run_nfa_full(nfa%out1, str, istart, fin, head=.false.)
+            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
 
           case(finish_ch)
 
           case default
-            print *, "Unrecognised state ", nfa%c
+            print *, "Unrecognised state ", s%c
             stop
         end select
       else
-        select case(nfa%c)
+        select case(s%c)
           case( split_st )
-            res = run_nfa_full(nfa%out1, str, istart, fin, head=.false.)
-            if(.not. res) res = run_nfa_full(nfa%out2, str, istart, fin, head=.false.)
+            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
+            if(.not. res) res = run_nfa_full(nfa, str, istart, fin, s_in = s%out2)
           case( match_st )
             res = .true.
             if(present(finish)) finish = len(str)
           case( finish_ch )
-            res = run_nfa_full(nfa%out1, str, istart, fin, head=.false.)
+            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
         end select
       end if
 
@@ -1018,89 +1307,130 @@ contains
 
   end function run_nfa_full
 
-  function re_match(re, str)
+
+  !------------------------------------------------------------------------------!
+    function re_match(re, str)                                                   !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to check a string str against a regular expression re.             !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   character(len=*), intent(in)  ::  re                                       !
+  !     Regualr expression to be matched                                         !
+  !                                                                              !
+  !   character(len=*), intent(in)  ::  str
+  !     String to be searched                                                    !
+  !------------------------------------------------------------------------------!
+  ! RETURNS                                                                      !
+  !   TRUE if there is a match, FALSE otherwise.                                 !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
     logical :: re_match
     character(len=*), intent(in)  ::  re
     character(len=*), intent(in)  ::  str
 
     integer                 ::  postfix(pf_buff_size)
-    type(state),    pointer ::  nfa
-    type(ptr_list), pointer ::  allocated_states
+    type(nfa_type)          ::  nfa
     integer ::  istart
 
-    n_states = 0
-
-    nfa => null()
-    allocated_states => new_list(null(), 0)
     istart = 1
 
     if(len_trim(re) < 1) stop "Regular expression cannot be of length 0"
     postfix = re_to_pf(trim(re))
-    nfa => pf_to_nfa(postfix, allocated_states)
+!EJH!     call print_pf(postfix)
 
-    call print_pf(postfix)
-    call print_state(nfa)
+    nfa = pf_to_nfa(postfix)
+!EJH!     call print_state(nfa%head)
 
     re_match = run_nfa_full(nfa, trim(str), istart)
 
-    call deallocate_list(allocated_states)
-    if(n_states /= 0) stop "Some states are still allocated!"
+    call deallocate_nfa(nfa)
 
   end function re_match
 
-  function re_match_str(re, str)
+  !------------------------------------------------------------------------------!
+    function re_match_str(re, str)                                               !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to get a substring from str that matches the regular expression re.!
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   character(len=*), intent(in)  ::  re                                       !
+  !     Regualr expression to be matched                                         !
+  !                                                                              !
+  !   character(len=*), intent(in)  ::  str
+  !     String to be searched                                                    !
+  !------------------------------------------------------------------------------!
+  ! RETURNS                                                                      !
+  !   The matching string if there is a match, an empty string otherwise.        !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
     character(len=pf_buff_size) :: re_match_str
     character(len=*), intent(in)  ::  re
     character(len=*), intent(in)  ::  str
 
     integer                 ::  postfix(pf_buff_size)
-    type(state),    pointer ::  nfa
-    type(ptr_list), pointer ::  allocated_states
+    type(nfa_type)          ::  nfa
     integer ::  istart, ifin
     logical :: match
 
-    n_states = 0
-
     istart = 1
     ifin = -1
-    nfa => null()
-    allocated_states => new_list(null(), 0)
 
     re_match_str = " "
 
     if(len_trim(re) < 1) stop "Regular expression cannot be of length 0"
     postfix = re_to_pf(trim(re))
-    nfa => pf_to_nfa(postfix, allocated_states)
+    nfa = pf_to_nfa(postfix)
 
     match = run_nfa_fast(nfa, trim(str), istart, finish=ifin)
     if(match) re_match_str = str(istart:ifin)
 
-    call deallocate_list(allocated_states)
-    if(n_states /= 0) stop "Some states are still allocated!"
+    call deallocate_nfa(nfa)
 
   end function re_match_str
 
-  subroutine re_split(re, str, output)
+  !------------------------------------------------------------------------------!
+    subroutine re_split(re, str, output)                                         !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to split a string into an array of substrings, based on the regular!
+  !   expression re.                                                             !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   character(len=*), intent(in)  ::  re                                       !
+  !     Regualr expression to be matched                                         !
+  !                                                                              !
+  !   character(len=*), intent(in)  ::  str                                      !
+  !     String to be searched                                                    !
+  !                                                                              !
+  !   character(len=*), intent(inout), allocatable   :: output(:)                !
+  !     Array containing the substrings. This will be (re)allocated within this  !
+  !     routine to the size of the number of matches.                            !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
     character(len=*), intent(in)  ::  re
     character(len=*), intent(in)  ::  str
     character(len=*), intent(inout), allocatable   :: output(:)
 
-    type(state),    pointer ::  nfa
-    type(ptr_list), pointer ::  allocated_states
+    type(nfa_type)          ::  nfa
     integer                 ::  postfix(pf_buff_size)
     logical                 ::   is_match
 
     integer :: istart, fin, isplit, last_fin, n_splits
 
-    n_states = 0
-
     istart = 1
-    nfa => null()
-    allocated_states => new_list(null(), 0)
+
 
     if(len_trim(re) < 1) stop "Regular expression cannot be of length 0"
     postfix = re_to_pf(trim(re))
-    nfa => pf_to_nfa(postfix, allocated_states)
+    nfa = pf_to_nfa(postfix)
 
     istart = 1
     isplit = 1
@@ -1149,8 +1479,7 @@ contains
       if(last_fin < len_trim(str)) output(isplit) = str(last_fin+1:)
     end if
 
-    call deallocate_list(allocated_states)
-    if(n_states /= 0) stop "Some states are still allocated!"
+    call deallocate_nfa(nfa)
 
   end subroutine re_split
 

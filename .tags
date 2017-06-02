@@ -4,70 +4,58 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
-Ang	constants.f90	/^  real(kind=dp),  parameter, public ::  Ang /;"	v	module:constants
-add_state	regex.f90	/^    recursive subroutine add_state(/;"	s	function:run_nfa_fast
+$$	example_regex.c	/^    $$ = frag(s, append($1.out, $3.out));$/;"	m	union:concat	file:
+$1	example_regex.c	/^    $1 = paren($1, 0);$/;"	m	union:EOL	file:
+EOL	example_regex.c	/^line: alt EOL$/;"	u	file:
+add_state	regex.f90	/^      recursive subroutine add_state(/;"	s	function:run_nfa_fast
+addstate	example_regex.c	/^void addstate(List *l, State *s, Sub *m, char *p) {$/;"	f
+allocate_nfa	regex.f90	/^    subroutine allocate_nfa(/;"	s	module:regex
 alpha_ch	regex.f90	/^  integer,  parameter ::  alpha_ch /;"	v	module:regex
 any_ch	regex.f90	/^  integer,  parameter ::  any_ch /;"	v	module:regex
-append	regex.f90	/^  function append(/;"	f	module:regex
+append	regex.f90	/^    function append(/;"	f	module:regex
+c	example_regex.c	/^  int  c;$/;"	m	union:__anon1	file:
 c	regex.f90	/^    integer               ::  c$/;"	k	type:state
-c_0	constants.f90	/^  complex(kind=sp), parameter,  public  ::  c_0 /;"	v	module:constants
-c_1	constants.f90	/^  complex(kind=sp), parameter,  public  ::  c_1 /;"	v	module:constants
-c_i	constants.f90	/^  complex(kind=sp), parameter,  public  ::  c_i /;"	v	module:constants
-callstack	trace.f90	/^  type(routine), pointer, save  ::  callstack$/;"	v	module:trace
 cat_op	regex.f90	/^  integer,  parameter ::  cat_op /;"	v	module:regex
 close_par_op	regex.f90	/^  integer,  parameter ::  close_par_op /;"	v	module:regex
-constants	constants.f90	/^module constants$/;"	m
-current_sub	trace.f90	/^  character(len=64),  public, save  ::  current_sub$/;"	v	module:trace
-deallocate_list	regex.f90	/^  subroutine deallocate_list(/;"	s	module:regex
-dp	constants.f90	/^  integer,          parameter,  public  ::  dp /;"	v	module:constants
-e	constants.f90	/^  rea/;"	v	module:constants
-eV	constants.f90	/^  real(kind=dp),  parameter, public ::  eV /;"	v	module:constants
+concat	example_regex.c	/^|  alt '|' concat$/;"	u	file:
+deallocate_list	regex.f90	/^    subroutine deallocate_list(/;"	s	module:regex
+deallocate_nfa	regex.f90	/^    subroutine deallocate_nfa(/;"	s	module:regex
+dump	example_regex.c	/^void dump(State *s) {$/;"	f
+dumplist	example_regex.c	/^void dumplist(List *l) {$/;"	f
 elem	regex.f90	/^    type(frag), pointer ::  elem$/;"	k	type:frag_stack
-elems	split_test.f90	/^  character(len=32), allocatable :: elems(/;"	v	program:split_test
-end_time	trace.f90	/^    real(kind=dp)           ::  end_time$/;"	k	type:routine
 failed	re_test.f90	/^  character(len=120)  ::  failed(/;"	v	program:re_test
 finish_ch	regex.f90	/^  integer,  parameter ::  finish_ch /;"	v	module:regex
+frag	example_regex.c	/^  Frag  frag;$/;"	m	union:__anon1	file:
 frag	regex.f90	/^  type  :: frag$/;"	t	module:regex
 frag_stack	regex.f90	/^  type  :: frag_stack$/;"	t	module:regex
-head	regex.f90	/^    logical               ::  head /;"	k	type:state
+head	regex.f90	/^    type(state),    pointer :: head$/;"	k	type:nfa_type
 i	re_test.f90	/^  in/;"	v	program:re_test
-i	split_test.f90	/^  in/;"	v	program:split_test
-id	trace.f90	/^    character(len=64)       ::  id$/;"	k	type:routine
 ifail	re_test.f90	/^  integer ::  ifail,/;"	v	program:re_test
-in_Ang	constants.f90	/^  real(kind=dp),  parameter, public ::  in_Ang=/;"	v	module:constants
-in_eV	constants.f90	/^  real(kind=dp),  parameter, public ::  in_eV /;"	v	module:constants
-input_file	split_test.f90	/^  integer :: input_file,/;"	v	program:split_test
-io	io.f90	/^module io$/;"	m
-io_abort	io.f90	/^    subroutine io_abort(/;"	s	module:io
-io_allocate_abort	io.f90	/^    subroutine io_allocate_abort(/;"	s	module:io
-io_close	io.f90	/^    subroutine io_close(/;"	s	module:io
-io_deallocate_abort	io.f90	/^    subroutine io_deallocate_abort(/;"	s	module:io
-io_initialise	io.f90	/^    subroutine io_initialise(/;"	s	module:io
-io_initialised	io.f90	/^  logical,  public  ::  io_initialised /;"	v	module:io
-io_open	io.f90	/^    function io_open(/;"	f	module:io
-io_warn	io.f90	/^    subroutine io_warn(/;"	s	module:io
-is_match	regex.f90	/^    function is_match(/;"	f	function:run_nfa_fast
-istat	split_test.f90	/^  integer :: input_file, istat=/;"	v	program:split_test
+input	example_regex.c	/^char *input;$/;"	v
+is_match	regex.f90	/^      function is_match(/;"	f	function:run_nfa_fast
 last_list	regex.f90	/^    integer               ::  last_list$/;"	k	type:state
-line	split_test.f90	/^  character(len=128) :: line$/;"	v	program:split_test
 list	regex.f90	/^    type  ::  list$/;"	t	function:run_nfa_fast
+longer	example_regex.c	/^int longer(Sub *a, Sub *b) {$/;"	f
+main	example_regex.c	/^int main(int argc, char **argv) {$/;"	f
+match	example_regex.c	/^int match(State *start, char *p, Sub *m) {$/;"	f
 match_st	regex.f90	/^  integer,  parameter ::  match_st /;"	v	module:regex
 n_alpha_ch	regex.f90	/^  integer,  parameter ::  n_alpha_ch /;"	v	module:regex
 n_alt	regex.f90	/^    integer ::  n_alt$/;"	k	type:paren_list
 n_atom	regex.f90	/^    integer ::  n_atom$/;"	k	type:paren_list
 n_numeric_ch	regex.f90	/^  integer,  parameter ::  n_numeric_ch /;"	v	module:regex
 n_space_ch	regex.f90	/^  integer,  parameter ::  n_space_ch /;"	v	module:regex
-n_states	regex.f90	/^  integer :: n_states$/;"	v	module:regex
+n_states	regex.f90	/^    integer                 :: n_states$/;"	k	type:nfa_type
 n_word_ch	regex.f90	/^  integer,  parameter ::  n_word_ch /;"	v	module:regex
-new_frag	regex.f90	/^    function new_frag(/;"	f	function:pf_to_nfa
-new_list	regex.f90	/^  function new_list(/;"	f	module:regex
-new_state	regex.f90	/^    function new_state(/;"	f	function:pf_to_nfa
+new_frag	regex.f90	/^      function new_frag(/;"	f	function:pf_to_nfa
+new_list	regex.f90	/^    function new_list(/;"	f	module:regex
+new_state	regex.f90	/^      function new_state(/;"	f	function:pf_to_nfa
 next	regex.f90	/^    type(ptr_list), pointer ::  next /;"	k	type:ptr_list
-next	trace.f90	/^    type(routine), pointer  ::  next$/;"	k	type:routine
+nfa_max_print	regex.f90	/^  integer,  parameter ::  nfa_max_print /;"	v	module:regex
+nfa_type	regex.f90	/^  type, public :: nfa_type$/;"	t	module:regex
 nfails	re_test.f90	/^  integer ::  ifail, nfails,/;"	v	program:re_test
+nparen	example_regex.c	/^  int nparen;$/;"	m	union:__anon1	file:
 ntests	re_test.f90	/^  integer ::  ifail, nfails, ntests,/;"	v	program:re_test
 null_st	regex.f90	/^  integer,  parameter ::  null_st /;"	v	module:regex
-num_calls	trace.f90	/^    integer                 ::  num_calls$/;"	k	type:routine
 numeric_ch	regex.f90	/^  integer,  parameter ::  numeric_ch /;"	v	module:regex
 open_par_op	regex.f90	/^  integer,  parameter ::  open_par_op /;"	v	module:regex
 or_op	regex.f90	/^  integer,  parameter ::  or_op /;"	v	module:regex
@@ -75,68 +63,51 @@ out1	regex.f90	/^    type(ptr_list), pointer ::  out1 /;"	k	type:frag
 out1	regex.f90	/^    type(state),  pointer ::  out1 /;"	k	type:state
 out2	regex.f90	/^    type(state),  pointer ::  out2 /;"	k	type:state
 paren_list	regex.f90	/^  type  ::  paren_list$/;"	t	module:regex
-patch	regex.f90	/^  subroutine patch(/;"	s	module:regex
+patch	regex.f90	/^    subroutine patch(/;"	s	module:regex
 pf_buff_size	regex.f90	/^  integer,  parameter ::  pf_buff_size /;"	v	module:regex
 pf_stack_size	regex.f90	/^  integer,  parameter ::  pf_stack_size /;"	v	module:regex
-pf_to_nfa	regex.f90	/^  function pf_to_nfa(/;"	f	module:regex
-pi	constants.f90	/^  real(kind=dp),    parameter,  public  ::  pi /;"	v	module:constants
+pf_to_nfa	regex.f90	/^    function pf_to_nfa(/;"	f	module:regex
 plus_op	regex.f90	/^  integer,  parameter ::  plus_op /;"	v	module:regex
-pop	regex.f90	/^    function pop(/;"	f	function:pf_to_nfa
+pop	regex.f90	/^      function pop(/;"	f	function:pf_to_nfa
 print_failures	re_test.f90	/^  subroutine print_failures(/;"	s	program:re_test
-print_pf	regex.f90	/^  subroutine print_pf(/;"	s	module:regex
-print_state	regex.f90	/^  recursive subroutine print_state(/;"	s	module:regex
+print_pf	regex.f90	/^    subroutine print_pf(/;"	s	module:regex
+print_state	regex.f90	/^    recursive subroutine print_state(/;"	s	module:regex
+printmatch	example_regex.c	/^void printmatch(Sub *m, int n) {$/;"	f
 ptr_list	regex.f90	/^  type  :: ptr_list$/;"	t	module:regex
-push	regex.f90	/^    subroutine push(/;"	s	function:pf_to_nfa
+push	regex.f90	/^      subroutine push(/;"	s	function:pf_to_nfa
 quest_op	regex.f90	/^  integer,  parameter ::  quest_op /;"	v	module:regex
 re	re_check.f90	/^  character(len=100) :: str, re$/;"	v	program:re_check
 re_check	re_check.f90	/^program re_check$/;"	p
-re_match	regex.f90	/^  function re_match(/;"	f	module:regex
-re_match_str	regex.f90	/^  function re_match_str(/;"	f	module:regex
-re_split	regex.f90	/^  subroutine re_split(/;"	s	module:regex
+re_match	regex.f90	/^    function re_match(/;"	f	module:regex
+re_match_str	regex.f90	/^    function re_match_str(/;"	f	module:regex
+re_split	regex.f90	/^    subroutine re_split(/;"	s	module:regex
 re_test	re_test.f90	/^program re_test$/;"	p
-re_to_pf	regex.f90	/^  function re_to_pf(/;"	f	module:regex
+re_to_pf	regex.f90	/^    function re_to_pf(/;"	f	module:regex
 regex	regex.f90	/^module regex$/;"	m
-routine	trace.f90	/^  type routine$/;"	t	module:trace
-routine_allocate	trace.f90	/^    subroutine routine_allocate(/;"	s	module:trace
-run_nfa_fast	regex.f90	/^  function run_nfa_fast(/;"	f	module:regex
-run_nfa_full	regex.f90	/^  recursive function run_nfa_full(/;"	f	module:regex
+run_nfa_fast	regex.f90	/^    function run_nfa_fast(/;"	f	module:regex
+run_nfa_full	regex.f90	/^    recursive function run_nfa_full(/;"	f	module:regex
+s	example_regex.c	/^    State *s = state(Split, 0, $1.start, $3.start);$/;"	m	union:concat	file:
+s	example_regex.c	/^    State *s;$/;"	m	union:EOL	file:
+s	example_regex.c	/^    s = state(Match, 0, NULL, NULL);$/;"	m	union:EOL	file:
 s	regex.f90	/^      type(st/;"	k	type:list
 s	regex.f90	/^    type(st/;"	k	type:ptr_list
 side	regex.f90	/^    integer                 ::  side /;"	k	type:ptr_list
-sort_list	trace.f90	/^    subroutine sort_list(/;"	s	subroutine:trace_output
-sp	constants.f90	/^  integer,          parameter,  public  ::  sp /;"	v	module:constants
 space_ch	regex.f90	/^  integer,  parameter ::  space_ch /;"	v	module:regex
 split_st	regex.f90	/^  integer,  parameter ::  split_st /;"	v	module:regex
-split_test	split_test.f90	/^program split_test$/;"	p
 star_op	regex.f90	/^  integer,  parameter ::  star_op /;"	v	module:regex
+start	example_regex.c	/^    start = $1.start;$/;"	m	union:EOL	file:
 start	regex.f90	/^    type(state),    pointer ::  start /;"	k	type:frag
 start_ch	regex.f90	/^  integer,  parameter ::  start_ch /;"	v	module:regex
-start_list	regex.f90	/^    function start_list(/;"	f	function:run_nfa_fast
-start_time	trace.f90	/^    real(kind=dp)           ::  start_time$/;"	k	type:routine
+start_list	regex.f90	/^      function start_list(/;"	f	function:run_nfa_fast
+startlist	example_regex.c	/^List* startlist(State *start, char *p, List *l) {$/;"	f
 state	regex.f90	/^  type, public  :: state$/;"	t	module:regex
-stderr	io.f90	/^  integer,  public  ::  stderr$/;"	v	module:io
-stdout	io.f90	/^  integer,  public  ::  stdout$/;"	v	module:io
-step	regex.f90	/^    recursive subroutine step(/;"	s	function:run_nfa_full
-step	regex.f90	/^    subroutine step(/;"	s	function:run_nfa_fast
+states	regex.f90	/^    type(ptr_list), pointer :: states$/;"	k	type:nfa_type
+step	example_regex.c	/^void step(List *clist, int c, char *p, List *nlist, Sub *match) {$/;"	f
+step	regex.f90	/^      recursive subroutine step(/;"	s	function:run_nfa_full
+step	regex.f90	/^      subroutine step(/;"	s	function:run_nfa_fast
 str	re_check.f90	/^  character(len=100) :: str,/;"	v	program:re_check
-submatch_pars	regex.f90	/^  integer ::  submatch_pars(/;"	v	module:regex
 test	re_test.f90	/^  subroutine test(/;"	s	program:re_test
-times	trace.f90	/^  type(routine), pointer, save  ::  times$/;"	v	module:trace
-total_time	trace.f90	/^    real(kind=dp)           ::  total_time$/;"	k	type:routine
-trace	trace.f90	/^module trace$/;"	m
-trace_enabled	trace.f90	/^  logical,                save  ::  trace_enabled /;"	v	module:trace
-trace_entry	trace.f90	/^    subroutine trace_entry(/;"	s	module:trace
-trace_exit	trace.f90	/^    subroutine trace_exit(/;"	s	module:trace
-trace_finalise	trace.f90	/^    subroutine trace_finalise(/;"	s	module:trace
-trace_initialise	trace.f90	/^    subroutine trace_initialise(/;"	s	module:trace
-trace_output	trace.f90	/^    subroutine trace_output(/;"	s	module:trace
-trace_start	trace.f90	/^  real(kind=dp),          save  ::  trace_time, trace_start$/;"	v	module:trace
-trace_time	trace.f90	/^  real(kind=dp),          save  ::  trace_time,/;"	v	module:trace
-trace_timer	trace.f90	/^  real(kind=dp) function trace_timer(/;"	f	module:trace
-trace_timings	trace.f90	/^  logical,                save  ::  trace_timings /;"	v	module:trace
-trace_write_callstack	trace.f90	/^    subroutine trace_write_callstack(/;"	s	module:trace
-twopi	constants.f90	/^  real(kind=dp),    parameter,  public  ::  twopi /;"	v	module:constants
+text	example_regex.c	/^char *text;$/;"	v
 word_ch	regex.f90	/^  integer,  parameter ::  word_ch /;"	v	module:regex
-z_0	constants.f90	/^  complex(kind=dp), parameter,  public  ::  z_0 /;"	v	module:constants
-z_1	constants.f90	/^  complex(kind=dp), parameter,  public  ::  z_1 /;"	v	module:constants
-z_i	constants.f90	/^  complex(kind=dp), parameter,  public  ::  z_i /;"	v	module:constants
+yyerror	example_regex.c	/^void yyerror(char *s) {$/;"	f
+yylex	example_regex.c	/^int yylex(void) {$/;"	f

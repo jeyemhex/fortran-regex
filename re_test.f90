@@ -9,9 +9,6 @@ program re_test
   ntests = 0
   failed = ""
 
-  call test("(ab)c"       , "abc" , .true. , "abc"   )
-  call test("^(ab|xx)?c$" , "abc" , .true. , "abc"   )
-
  ! Single character matching
   call test("a"    , "a"   , .true. , "a"   )
   call test("a"    , "b"   , .false.        )
@@ -98,6 +95,11 @@ program re_test
   call test("abc?"  , "abc" , .true. , "abc" )
   call test("abx?"  , "abc" , .true. , "ab"  )
 
+  ! Bracketed expressions
+  call test("(ab)c"       , "abc" , .true. , "abc"   )
+  call test("^(ab|xx)?c$" , "abc" , .true. , "abc"   )
+
+
   call test("abc"    , "ababc"                             , .true. , "abc"   )
   call test("cat"    , "He captured a catfish for his cat" , .true. , "cat"   )
   call test("hel*o?" , "hello"                             , .true. , "hello" )
@@ -120,7 +122,7 @@ program re_test
   call test("^(\d+)\s+IN\s+SOA\s+(\S+)\s+(\S+)\s*\(\s*$" , "1IN SOA non-sp1 non-sp2("  , .false.                              )
   call test("^(a(b(c)))(d(e(f)))(h(i(j)))(k(l(m)))$"     , "abcdefhijklm"              , .true. , "abcdefhijklm"              )
 
- ! Random tests for finding numbers
+! Random tests for finding numbers
   call test("^(\d+(\.\d*)?)$"             , "0.63"   , .true. , "0.63" )
   call test("^(\d+(\.\d*)?)$"             , "724"    , .true. , "724"  )
   call test("^(\d+(\.\d*)?)$"             , "6.2_dp" , .false.         )
@@ -151,6 +153,7 @@ program re_test
 
 contains
   subroutine test(re, str, succ, res)
+    use iso_fortran_env
     character(len=*), intent(in)           :: re
     character(len=*), intent(in)           :: str
     logical,          intent(in)           :: succ
@@ -161,7 +164,7 @@ contains
 
     local_succ = .false.
     local_res = " "
-
+    flush(error_unit)
     local_succ = re_match(re, str)
     if(local_succ .eqv. succ) then
       if(present(res)) then
