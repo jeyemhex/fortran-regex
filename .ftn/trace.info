@@ -1,5 +1,0 @@
-module trace
-  use constants,  only: dp
-    use omp_lib
-    use omp_lib
-    use omp_lib
