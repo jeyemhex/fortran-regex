@@ -3,7 +3,7 @@ program re_test
   implicit none
 
   character(len=120)  ::  failed(6,1000)
-  integer ::  ifail, nfails, ntests, i
+  integer ::  ifail, nfails, ntests
 
   nfails = 0
   ntests = 0

@@ -22,7 +22,7 @@ module regex
 
   private
 
-  public :: re_match, re_match_str, re_split
+  public :: re_match, re_match_str, re_split, re_replace
 
   integer,  parameter ::  pf_buff_size  = 8000  ! Maximum size of the postfix buffer
   integer,  parameter ::  pf_stack_size = 4000  ! Maximum size of the postfix stack
@@ -193,15 +193,15 @@ contains
     type(state), pointer  ::  tmp_s
 
     local_depth=0
-    if(present(depth)) then
+    if (present(depth)) then
       local_depth = depth
     end if
 
-    if(local_depth > nfa_max_print) then
+    if (local_depth > nfa_max_print) then
       print *, "Trying to print a superdeep structure!"
     else
       tmp_s => s
-      if(tmp_s%c /= null_st) then
+      if (tmp_s%c /= null_st) then
         do i = 1, local_depth
           write(*,'(A3)', advance="no") "|  "
         end do
@@ -242,8 +242,8 @@ contains
           stop "Unrecognised character in print_state"
       end select
       end if
-      if(associated(tmp_s%out1)) call print_state(tmp_s%out1, depth=local_depth+1)
-      if(associated(tmp_s%out2)) call print_state(tmp_s%out2, depth=local_depth+1)
+      if (associated(tmp_s%out1)) call print_state(tmp_s%out1, depth=local_depth+1)
+      if (associated(tmp_s%out2)) call print_state(tmp_s%out2, depth=local_depth+1)
     end if
 
   end subroutine print_state
@@ -275,7 +275,7 @@ contains
     integer ::  ierr
 
     allocate(new_list, stat=ierr)
-    if(ierr /= 0) stop "Unable to allocate new_list"
+    if (ierr /= 0) stop "Unable to allocate new_list"
 
     new_list%s    => outp
     new_list%side =  side
@@ -308,7 +308,7 @@ contains
     type(ptr_list), pointer,  intent(in)    :: l2
 
     append => l1
-    do while( associated(l1%next) )
+    do while ( associated(l1%next) )
       l1 => l1%next
     end do
 
@@ -344,36 +344,36 @@ contains
     integer ::  ierr
 
     local_ks = .false.
-    if(present(keep_states)) local_ks = keep_states
+    if (present(keep_states)) local_ks = keep_states
 
-    if(.not. associated(l)) return
+    if (.not. associated(l)) return
 
-    do while(associated(l%next))
+    do while (associated(l%next))
       tmp_l => l
       l => tmp_l%next
-      if((associated(tmp_l%s)) .and. (.not. local_ks)) then
+      if ((associated(tmp_l%s)) .and. (.not. local_ks)) then
         deallocate(tmp_l%s)
-        if(present(n_states)) n_states = n_states - 1
+        if (present(n_states)) n_states = n_states - 1
       else
         tmp_l%s => null()
       end if
       tmp_l%next => null()
       deallocate(tmp_l, stat=ierr)
-      if(ierr /= 0) stop "Unable to deallocate list tmp_l"
+      if (ierr /= 0) stop "Unable to deallocate list tmp_l"
       tmp_l => null()
     end do
 
-    if((associated(l%s)) .and. (.not. local_ks)) then
+    if ((associated(l%s)) .and. (.not. local_ks)) then
       deallocate(l%s, stat=ierr)
-      if(ierr /= 0) stop "Unable to deallocate l%s"
-      if(present(n_states)) n_states = n_states - 1
+      if (ierr /= 0) stop "Unable to deallocate l%s"
+      if (present(n_states)) n_states = n_states - 1
     else
       l%s => null()
     end if
 
 !EJH!     ! If this is uncommented, it segfaults.. this is bad!
-!EJH!     if(associated(l)) deallocate(l, stat=ierr)
-!EJH!     if(ierr /= 0) stop "Unable to deallocate list l"
+!EJH!     if (associated(l)) deallocate(l, stat=ierr)
+!EJH!     if (ierr /= 0) stop "Unable to deallocate list l"
     l => null()
 
   end subroutine deallocate_list
@@ -400,7 +400,7 @@ contains
     type(ptr_list), pointer :: tmp_l
 
     tmp_l => l
-    do while( associated(tmp_l) )
+    do while ( associated(tmp_l) )
       select case(tmp_l%side)
         case(1)
           tmp_l%s%out1 => s
@@ -451,20 +451,20 @@ contains
 
     pf = null_st
 
-    if(len_trim(re) > pf_buff_size/2) stop "Regex too long!"
-    do while(re_loc <= len_trim(re))
-      if(.not. escaped) then
+    if (len_trim(re) > pf_buff_size/2) stop "Regex too long!"
+    do while (re_loc <= len_trim(re))
+      if (.not. escaped) then
         select case(re(re_loc:re_loc))
           case('\')
             escaped = .true.
 
           case('(')
-            if(n_atom > 1) then
+            if (n_atom > 1) then
               n_atom = n_atom - 1
               pf(pf_loc) = cat_op
               pf_loc = pf_loc + 1
             end if
-            if(par_loc > size(paren)) stop "Too many embedded brackets!"
+            if (par_loc > size(paren)) stop "Too many embedded brackets!"
             paren(par_loc)%n_alt  = n_alt
             paren(par_loc)%n_atom = n_atom
             par_loc = par_loc + 1
@@ -472,10 +472,10 @@ contains
             n_atom  = 0
 
           case('|')
-            if(n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
+            if (n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
 
             n_atom = n_atom - 1
-            do while(n_atom > 0)
+            do while (n_atom > 0)
               pf(pf_loc) = cat_op
               pf_loc = pf_loc + 1
               n_atom = n_atom - 1
@@ -483,17 +483,17 @@ contains
             n_alt = n_alt + 1
 
           case (')')
-            if(par_loc == 1) stop "I think you have an unmatched paren? maybe?"
-            if(n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
+            if (par_loc == 1) stop "I think you have an unmatched paren? maybe?"
+            if (n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
 
             n_atom = n_atom - 1
-            do while(n_atom > 0)
+            do while (n_atom > 0)
               pf(pf_loc) = cat_op
               pf_loc = pf_loc + 1
               n_atom = n_atom - 1
             end do
 
-            do while(n_alt > 0)
+            do while (n_alt > 0)
               pf(pf_loc) = or_op
               pf_loc = pf_loc + 1
               n_alt = n_alt - 1
@@ -505,22 +505,22 @@ contains
             n_atom = n_atom + 1
 
           case('*')
-            if(n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
+            if (n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
             pf(pf_loc) = star_op
             pf_loc = pf_loc + 1
 
           case('+')
-            if(n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
+            if (n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
             pf(pf_loc) = plus_op
             pf_loc = pf_loc + 1
 
           case('?')
-            if(n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
+            if (n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
             pf(pf_loc) = quest_op
             pf_loc = pf_loc + 1
 
           case ('.')
-            if(n_atom > 1) then
+            if (n_atom > 1) then
               n_atom = n_atom - 1
               pf(pf_loc:pf_loc) = cat_op
               pf_loc = pf_loc + 1
@@ -530,7 +530,7 @@ contains
             n_atom = n_atom + 1
 
           case ('^')
-            if(n_atom > 1) then
+            if (n_atom > 1) then
               n_atom = n_atom - 1
               pf(pf_loc:pf_loc) = cat_op
               pf_loc = pf_loc + 1
@@ -540,7 +540,7 @@ contains
             n_atom = n_atom + 1
 
           case ('$')
-            if(n_atom > 1) then
+            if (n_atom > 1) then
               n_atom = n_atom - 1
               pf(pf_loc:pf_loc) = cat_op
               pf_loc = pf_loc + 1
@@ -552,7 +552,7 @@ contains
           case(' ', achar(9))
 
           case default
-            if(n_atom > 1) then
+            if (n_atom > 1) then
               n_atom = n_atom - 1
               pf(pf_loc:pf_loc) = cat_op
               pf_loc = pf_loc + 1
@@ -562,7 +562,7 @@ contains
             n_atom = n_atom + 1
 
         end select
-      else if(escaped) then
+      else if (escaped) then
 
         select case(re(re_loc:re_loc))
           case('(','|',')','*','+','?','\','.','^','$',' ',achar(9))
@@ -588,7 +588,7 @@ contains
             stop "Unrecognised escaped character"
         end select
 
-        if(n_atom > 1) then
+        if (n_atom > 1) then
           n_atom = n_atom - 1
           pf(pf_loc:pf_loc) = cat_op
           pf_loc = pf_loc + 1
@@ -603,16 +603,16 @@ contains
 
     end do
 
-    if(par_loc /= 1) stop "I think you've got unmatched parentheses"
+    if (par_loc /= 1) stop "I think you've got unmatched parentheses"
 
     n_atom = n_atom - 1
-    do while(n_atom > 0)
+    do while (n_atom > 0)
       pf(pf_loc:pf_loc) = cat_op
       pf_loc = pf_loc + 1
       n_atom = n_atom - 1
     end do
 
-    do while(n_alt > 0)
+    do while (n_alt > 0)
       pf(pf_loc:pf_loc) = or_op
       pf_loc = pf_loc + 1
       n_alt = n_alt - 1
@@ -658,7 +658,7 @@ contains
 
     call deallocate_list(nfa%states, keep_states=.false., n_states = nfa%n_states)
     nfa%head => null()
-    if(nfa%n_states /= 0) stop "Some states are still allocated!"
+    if (nfa%n_states /= 0) stop "Some states are still allocated!"
 
   end subroutine deallocate_nfa
 
@@ -689,7 +689,6 @@ contains
     type(state),    pointer ::  s
     type(state),    pointer ::  matchstate
     type(state),    pointer ::  nullstate
-    type(ptr_list), pointer :: new_l
 
     integer ::  nfrags, i, ierr
 
@@ -697,9 +696,9 @@ contains
 
     nfrags = 0
     allocate(allocated_frags(pf_stack_size), stat=ierr)
-    if(ierr /= 0) stop "Unable to allocate frag stack"
+    if (ierr /= 0) stop "Unable to allocate frag stack"
     allocate(stack(pf_stack_size),stat=ierr)
-    if(ierr /= 0) stop "Unable to allocate stack"
+    if (ierr /= 0) stop "Unable to allocate stack"
 
 
     do i = 1, pf_stack_size
@@ -707,7 +706,7 @@ contains
       allocated_frags(i)%elem => null()
     end do
 
-    if(nfa%states%side /= 0) stop "Trying to build nfa with in-use states"
+    if (nfa%states%side /= 0) stop "Trying to build nfa with in-use states"
 
     matchstate => new_state(match_st, null(), null())
     nullstate => new_state(null_st, null(), null())
@@ -716,7 +715,7 @@ contains
     pf_loc  = 1
     s_loc   = 1
 
-    do while(postfix(pf_loc) /= null_st)
+    do while (postfix(pf_loc) /= null_st)
       s => null()
       select case( postfix(pf_loc) )
 
@@ -767,26 +766,26 @@ contains
 
     e => pop()
 
-    if(s_loc /= 1) stop "Stack is not empty on exit"
+    if (s_loc /= 1) stop "Stack is not empty on exit"
     call patch(e%out1, matchstate)
 
     nfa%head => e%start
 
-    if(matchstate%c /= match_st) stop "***** Matchstate has changed!"
-    if(nullstate%c /= null_st) stop "***** Nullstate has changed!"
+    if (matchstate%c /= match_st) stop "***** Matchstate has changed!"
+    if (nullstate%c /= null_st) stop "***** Nullstate has changed!"
 
     do i = 1, nfrags
-      if(associated(allocated_frags(i)%elem)) then
+      if (associated(allocated_frags(i)%elem)) then
         call deallocate_list(allocated_frags(i)%elem%out1, keep_states=.true.)
-        if(associated(allocated_frags(i)%elem%start)) allocated_frags(i)%elem%start => null()
+        if (associated(allocated_frags(i)%elem%start)) allocated_frags(i)%elem%start => null()
         deallocate(allocated_frags(i)%elem, stat=ierr)
-        if(ierr /= 0) stop "Unable to deallocate fragment"
+        if (ierr /= 0) stop "Unable to deallocate fragment"
         allocated_frags(i)%elem => null()
       end if
     end do
 
     deallocate(stack, allocated_frags, stat=ierr)
-    if(ierr /= 0) stop "Unable to deallocate stacks"
+    if (ierr /= 0) stop "Unable to deallocate stacks"
     e => null()
 
   contains
@@ -826,7 +825,7 @@ contains
       new_state => null()
       tmp_l => null()
       allocate(new_state, stat=ierr)
-      if(ierr /= 0) stop "Unable to allocate new_state"
+      if (ierr /= 0) stop "Unable to allocate new_state"
       new_state%last_list = 0
       new_state%c = c
       new_state%out1 => out1
@@ -914,7 +913,7 @@ contains
     integer ::  istart, i, ierr
 
     allocate(l1(1:nfa%n_states), l2(1:nfa%n_states), stat=ierr)
-    if(ierr /= 0) stop "Error allocating l1,l2 in run_nfa_fast"
+    if (ierr /= 0) stop "Error allocating l1,l2 in run_nfa_fast"
 
     start_loop: do istart = start, len(str)
       do i = 1, nfa%n_states
@@ -932,12 +931,12 @@ contains
       loc_start = istart
 
       res = .false.
-      if( is_match(c_list, n_cl) ) then
+      if ( is_match(c_list, n_cl) ) then
         res = .true.
-        if(present(finish)) finish = min(ch_loc, len(str))
+        if (present(finish)) finish = min(ch_loc, len(str))
       end if
 
-      if(present(finish)) finish = -1
+      if (present(finish)) finish = -1
       do while (ch_loc <= len(str)+1)
         no_advance  = .false.
         call step()
@@ -947,13 +946,13 @@ contains
         n_t  = n_cl
         n_cl = n_nl
         n_nl = n_t
-        if( is_match(c_list, n_cl) ) then
+        if ( is_match(c_list, n_cl) ) then
           res = .true.
-          if(present(finish)) finish = min(ch_loc, len(str))
+          if (present(finish)) finish = min(ch_loc, len(str))
         end if
-        if(.not. no_advance) ch_loc = ch_loc + 1
+        if (.not. no_advance) ch_loc = ch_loc + 1
       end do
-      if(res) exit start_loop
+      if (res) exit start_loop
     end do start_loop
 
     if (res) start = loc_start
@@ -996,11 +995,11 @@ contains
       do i=1, n_cl-1
         s => c_list(i)%s
 
-        if(ch_loc <= len(str)) then
+        if (ch_loc <= len(str)) then
           select case(s%c)
 
             case(0:255)
-              if( s%c == iachar(str(ch_loc:ch_loc)) ) then
+              if ( s%c == iachar(str(ch_loc:ch_loc)) ) then
                 call add_state(n_list, n_nl, s%out1)
               end if
 
@@ -1053,7 +1052,7 @@ contains
               end select
 
             case(start_ch)
-              if(ch_loc == 1) call add_state(n_list, n_nl, s%out1)
+              if (ch_loc == 1) call add_state(n_list, n_nl, s%out1)
               no_advance = .true.
 
             case(open_par_op)
@@ -1073,7 +1072,7 @@ contains
               stop
           end select
         else
-          if(s%c == finish_ch) then
+          if (s%c == finish_ch) then
             call add_state(n_list, n_nl, s%out1)
           end if
         end if
@@ -1094,7 +1093,7 @@ contains
       integer ::  i
 
       do i = 1, n_l-1
-        if( l(i)%s%c == match_st ) then
+        if ( l(i)%s%c == match_st ) then
           is_match = .true.
           return
         end if
@@ -1114,9 +1113,9 @@ contains
       integer,                intent(inout) ::  n_l
       type(state),  pointer,  intent(inout) ::  s
 
-      if( (s%c == null_st) .or. (s%last_list == list_id) ) return
+      if ( (s%c == null_st) .or. (s%last_list == list_id) ) return
       s%last_list = list_id
-      if(s%c == split_st) then
+      if (s%c == split_st) then
         call add_state(l, n_l, s%out1)
         call add_state(l, n_l, s%out2)
         return
@@ -1170,10 +1169,10 @@ contains
     integer ::  istart, fin
 
     res = .false.
-    if(present(finish)) finish = -1
+    if (present(finish)) finish = -1
     fin = -1
 
-    if(present(s_in)) then
+    if (present(s_in)) then
       istart = start
       s => s_in
       call step()
@@ -1181,12 +1180,12 @@ contains
       start_loop: do istart = start, len(str)
         s => nfa%head
         call step()
-        if(res) exit start_loop
+        if (res) exit start_loop
       end do start_loop
     end if
 
-    if(present(finish)) then
-      if(finish == -1) finish = fin
+    if (present(finish)) then
+      if (finish == -1) finish = fin
     end if
     start = istart
 
@@ -1202,18 +1201,18 @@ contains
       integer ::  next_start
 
       next_start = -1
-      if(istart <= len(str)) then
+      if (istart <= len(str)) then
         select case(s%c)
           case( match_st )
             res = .true.
-            if(present(finish)) finish = istart-1
+            if (present(finish)) finish = istart-1
 
           case( split_st )
             res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
-            if(.not. res) res = run_nfa_full(nfa, str, istart, fin, s_in = s%out2)
+            if (.not. res) res = run_nfa_full(nfa, str, istart, fin, s_in = s%out2)
 
           case(0:255)
-            if( s%c == iachar(str(istart:istart)) ) then
+            if ( s%c == iachar(str(istart:istart)) ) then
               next_start = istart + 1
               res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end if
@@ -1276,7 +1275,7 @@ contains
             end select
 
           case(start_ch)
-            if(start == 1) res = run_nfa_full(nfa, str, start, fin, s_in = s%out1)
+            if (start == 1) res = run_nfa_full(nfa, str, start, fin, s_in = s%out1)
 
           case(open_par_op)
             res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
@@ -1294,10 +1293,10 @@ contains
         select case(s%c)
           case( split_st )
             res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
-            if(.not. res) res = run_nfa_full(nfa, str, istart, fin, s_in = s%out2)
+            if (.not. res) res = run_nfa_full(nfa, str, istart, fin, s_in = s%out2)
           case( match_st )
             res = .true.
-            if(present(finish)) finish = len(str)
+            if (present(finish)) finish = len(str)
           case( finish_ch )
             res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
         end select
@@ -1337,7 +1336,7 @@ contains
 
     istart = 1
 
-    if(len_trim(re) < 1) stop "Regular expression cannot be of length 0"
+    if (len_trim(re) < 1) stop "Regular expression cannot be of length 0"
     postfix = re_to_pf(trim(re))
 !EJH!     call print_pf(postfix)
 
@@ -1383,12 +1382,12 @@ contains
 
     re_match_str = " "
 
-    if(len_trim(re) < 1) stop "Regular expression cannot be of length 0"
+    if (len_trim(re) < 1) stop "Regular expression cannot be of length 0"
     postfix = re_to_pf(trim(re))
     nfa = pf_to_nfa(postfix)
 
     match = run_nfa_fast(nfa, trim(str), istart, finish=ifin)
-    if(match) re_match_str = str(istart:ifin)
+    if (match) re_match_str = str(istart:ifin)
 
     call deallocate_nfa(nfa)
 
@@ -1428,7 +1427,7 @@ contains
     istart = 1
 
 
-    if(len_trim(re) < 1) stop "Regular expression cannot be of length 0"
+    if (len_trim(re) < 1) stop "Regular expression cannot be of length 0"
     postfix = re_to_pf(trim(re))
     nfa = pf_to_nfa(postfix)
 
@@ -1437,25 +1436,25 @@ contains
     n_splits = 0
 
     is_match = run_nfa_full(nfa, trim(str), istart, finish=fin)
-    if(is_match) then
+    if (is_match) then
       n_splits = n_splits + 1
       last_fin = fin
       istart = last_fin+1
       isplit = 2
-      do while(istart <= len_trim(str))
+      do while (istart <= len_trim(str))
         is_match = run_nfa_full(nfa, trim(str), istart, finish=fin)
-        if(.not. is_match) exit
+        if (.not. is_match) exit
         n_splits = n_splits + 1
         last_fin = fin
         isplit = isplit + 1
         istart = last_fin+1
       end do
-      if(last_fin <= len_trim(str)) n_splits = n_splits + 1
+      if (last_fin <= len_trim(str)) n_splits = n_splits + 1
     end if
 
-    if(n_splits == 0) return
+    if (n_splits == 0) return
 
-    if(allocated(output)) deallocate(output)
+    if (allocated(output)) deallocate(output)
     allocate(output(n_splits))
 
     istart = 1
@@ -1463,24 +1462,92 @@ contains
     output = " "
 
     is_match = run_nfa_fast(nfa, trim(str), istart, finish=fin)
-    if(is_match) then
+    if (is_match) then
       output(1) = str(1:istart-1)
       last_fin = fin
       istart = last_fin+1
       isplit = 2
-      do while(istart <= len_trim(str))
+      do while (istart <= len_trim(str))
         is_match = run_nfa_fast(nfa, trim(str), istart, finish=fin)
-        if(.not. is_match) exit
+        if (.not. is_match) exit
         output(isplit) = str(last_fin+1:istart-1)
         last_fin = fin
         isplit = isplit + 1
         istart = last_fin+1
       end do
-      if(last_fin < len_trim(str)) output(isplit) = str(last_fin+1:)
+      if (last_fin < len_trim(str)) output(isplit) = str(last_fin+1:)
     end if
 
     call deallocate_nfa(nfa)
 
   end subroutine re_split
+
+  !------------------------------------------------------------------------------!
+    function re_replace(re, repl, str)                                           !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Routine to replace each occurance of re with repl in str                  .!
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   character(len=*), intent(in)  ::  re                                       !
+  !     Regualr expression to be matched                                         !
+  !                                                                              !
+  !   character(len=*), intent(in)  ::  repl                                     !
+  !     String to replace the regular expression                                 !
+  !                                                                              !
+  !   character(len=*), intent(in)  ::  str                                      !
+  !     String to be searched                                                    !
+  !------------------------------------------------------------------------------!
+  ! RETURNS                                                                      !
+  !   The matching string if there is a match, an empty string otherwise.        !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2016-02-01                                                 !
+  !------------------------------------------------------------------------------!
+    character(len=pf_buff_size) :: re_replace
+    character(len=*), intent(in)  ::  re
+    character(len=*), intent(in)  ::  repl
+    character(len=*), intent(in)  ::  str
+
+    integer                 ::  postfix(pf_buff_size)
+    type(nfa_type)          ::  nfa
+    integer ::  istart, ifin, last_fin, rep_ptr
+    logical :: match
+
+    istart = 1
+    ifin = -1
+    last_fin = 0
+    rep_ptr = 0
+
+    re_replace = " "
+
+    if (len_trim(re) < 1) stop "Regular expression cannot be of length 0"
+    postfix = re_to_pf(trim(re))
+    nfa = pf_to_nfa(postfix)
+
+    match = run_nfa_fast(nfa, trim(str), istart, finish=ifin)
+    if (match) then
+      re_replace = str(1:istart-1) // repl
+      rep_ptr = istart + len(repl)-1
+      last_fin = ifin
+    end if
+
+    do while (ifin <= len(str))
+      istart=ifin+1
+      match = run_nfa_fast(nfa, trim(str), istart, finish=ifin)
+      if (match) then
+        re_replace = re_replace(1:rep_ptr) // str(last_fin+1:istart-1) // repl
+        rep_ptr = rep_ptr + (istart-last_fin+1) + len(repl)-2
+        last_fin = ifin
+      else
+        exit
+      end if
+    end do
+
+    re_replace = re_replace(1:rep_ptr) // str(last_fin+1:)
+
+    call deallocate_nfa(nfa)
+
+  end function re_replace
 
 end module regex

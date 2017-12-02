@@ -20,6 +20,7 @@ close_par_op	regex.f90	/^  integer,  parameter ::  close_par_op /;"	v	module:reg
 concat	example_regex.c	/^|  alt '|' concat$/;"	u	file:
 deallocate_list	regex.f90	/^    subroutine deallocate_list(/;"	s	module:regex
 deallocate_nfa	regex.f90	/^    subroutine deallocate_nfa(/;"	s	module:regex
+debug_test	debug_test.f90	/^program debug_test$/;"	p
 dump	example_regex.c	/^void dump(State *s) {$/;"	f
 dumplist	example_regex.c	/^void dumplist(List *l) {$/;"	f
 elem	regex.f90	/^    type(frag), pointer ::  elem$/;"	k	type:frag_stack
@@ -29,13 +30,14 @@ frag	example_regex.c	/^  Frag  frag;$/;"	m	union:__anon1	file:
 frag	regex.f90	/^  type  :: frag$/;"	t	module:regex
 frag_stack	regex.f90	/^  type  :: frag_stack$/;"	t	module:regex
 head	regex.f90	/^    type(state),    pointer :: head$/;"	k	type:nfa_type
-i	re_test.f90	/^  in/;"	v	program:re_test
 ifail	re_test.f90	/^  integer ::  ifail,/;"	v	program:re_test
 input	example_regex.c	/^char *input;$/;"	v
 is_match	regex.f90	/^      function is_match(/;"	f	function:run_nfa_fast
 last_list	regex.f90	/^    integer               ::  last_list$/;"	k	type:state
 list	regex.f90	/^    type  ::  list$/;"	t	function:run_nfa_fast
 longer	example_regex.c	/^int longer(Sub *a, Sub *b) {$/;"	f
+m1	debug_test.f90	/^  logical :: m1,/;"	v	program:debug_test
+m2	debug_test.f90	/^  logical :: m1, m2$/;"	v	program:debug_test
 main	example_regex.c	/^int main(int argc, char **argv) {$/;"	f
 match	example_regex.c	/^int match(State *start, char *p, Sub *m) {$/;"	f
 match_st	regex.f90	/^  integer,  parameter ::  match_st /;"	v	module:regex
@@ -54,7 +56,7 @@ nfa_max_print	regex.f90	/^  integer,  parameter ::  nfa_max_print /;"	v	module:r
 nfa_type	regex.f90	/^  type, public :: nfa_type$/;"	t	module:regex
 nfails	re_test.f90	/^  integer ::  ifail, nfails,/;"	v	program:re_test
 nparen	example_regex.c	/^  int nparen;$/;"	m	union:__anon1	file:
-ntests	re_test.f90	/^  integer ::  ifail, nfails, ntests,/;"	v	program:re_test
+ntests	re_test.f90	/^  integer ::  ifail, nfails, ntests$/;"	v	program:re_test
 null_st	regex.f90	/^  integer,  parameter ::  null_st /;"	v	module:regex
 numeric_ch	regex.f90	/^  integer,  parameter ::  numeric_ch /;"	v	module:regex
 open_par_op	regex.f90	/^  integer,  parameter ::  open_par_op /;"	v	module:regex
@@ -76,14 +78,16 @@ printmatch	example_regex.c	/^void printmatch(Sub *m, int n) {$/;"	f
 ptr_list	regex.f90	/^  type  :: ptr_list$/;"	t	module:regex
 push	regex.f90	/^      subroutine push(/;"	s	function:pf_to_nfa
 quest_op	regex.f90	/^  integer,  parameter ::  quest_op /;"	v	module:regex
-re	re_check.f90	/^  character(len=100) :: str, re$/;"	v	program:re_check
+re	re_check.f90	/^  character(len=100) :: str, re,/;"	v	program:re_check
 re_check	re_check.f90	/^program re_check$/;"	p
 re_match	regex.f90	/^    function re_match(/;"	f	module:regex
 re_match_str	regex.f90	/^    function re_match_str(/;"	f	module:regex
+re_replace	regex.f90	/^    function re_replace(/;"	f	module:regex
 re_split	regex.f90	/^    subroutine re_split(/;"	s	module:regex
 re_test	re_test.f90	/^program re_test$/;"	p
 re_to_pf	regex.f90	/^    function re_to_pf(/;"	f	module:regex
 regex	regex.f90	/^module regex$/;"	m
+repl	re_check.f90	/^  character(len=100) :: str, re, repl$/;"	v	program:re_check
 run_nfa_fast	regex.f90	/^    function run_nfa_fast(/;"	f	module:regex
 run_nfa_full	regex.f90	/^    recursive function run_nfa_full(/;"	f	module:regex
 s	example_regex.c	/^    State *s = state(Split, 0, $1.start, $3.start);$/;"	m	union:concat	file:
