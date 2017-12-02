@@ -11,7 +11,7 @@
 !------------------------------------------------------------------------------!
 ! Author:  Edward Higgins <ed.j.higgins@gmail.com>                             !
 !------------------------------------------------------------------------------!
-! Version: 0.1.1, 2016-02-01                                                   !
+! Version: 0.2.1, 2017-12-02                                                   !
 !------------------------------------------------------------------------------!
 ! This code is distributed under the MIT license.                              !
 !==============================================================================!
@@ -1136,20 +1136,20 @@ contains
   !   does allow submatching.                                                    !
   !------------------------------------------------------------------------------!
   ! ARGUMENTS                                                                    !
-  !   type(nfa_type),       intent(inout)           ::  nfa                        !
+  !   type(nfa_type),       intent(inout)           ::  nfa                      !
   !     NFA to be simulated                                                      !
   !                                                                              !
-  !   character(len=*),     intent(in)              ::  str                        !
+  !   character(len=*),     intent(in)              ::  str                      !
   !     String to be searched                                                    !
   !                                                                              !
-  !   integer,              intent(inout)           ::  start                      !
+  !   integer,              intent(inout)           ::  start                    !
   !     Where in str to start. On exit, returns the start of the match if        !
   !     matched                                                                  !
   !                                                                              !
-  !   integer,              intent(out),  optional  ::  finish                     !
+  !   integer,              intent(out),  optional  ::  finish                   !
   !     Last character of matched string                                         !
   !                                                                              !
-  !   type(state), pointer, intent(in),   optional  ::  s_in                       !
+  !   type(state), pointer, intent(in),   optional  ::  s_in                     !
   !     Node to start on  is the start of the NFA or not.                        !
   !------------------------------------------------------------------------------!
   ! RETURNS                                                                      !
@@ -1331,6 +1331,7 @@ contains
     character(len=*), intent(in)  ::  str
 
     integer                 ::  postfix(pf_buff_size)
+    logical                 ::  debug = .false.
     type(nfa_type)          ::  nfa
     integer ::  istart
 
@@ -1338,10 +1339,10 @@ contains
 
     if (len_trim(re) < 1) stop "Regular expression cannot be of length 0"
     postfix = re_to_pf(trim(re))
-!EJH!     call print_pf(postfix)
+    if(debug) call print_pf(postfix)
 
     nfa = pf_to_nfa(postfix)
-!EJH!     call print_state(nfa%head)
+    if(debug) call print_state(nfa%head)
 
     re_match = run_nfa_full(nfa, trim(str), istart)
 
@@ -1359,7 +1360,7 @@ contains
   !   character(len=*), intent(in)  ::  re                                       !
   !     Regualr expression to be matched                                         !
   !                                                                              !
-  !   character(len=*), intent(in)  ::  str
+  !   character(len=*), intent(in)  ::  str                                      !
   !     String to be searched                                                    !
   !------------------------------------------------------------------------------!
   ! RETURNS                                                                      !

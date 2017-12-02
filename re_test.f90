@@ -168,7 +168,7 @@ contains
     local_succ = re_match(re, str)
     if(local_succ .eqv. succ) then
       if(present(res)) then
-        local_res = re_match_str(re, str)
+        local_res = trim(re_match_str(re, str))
         if(trim(res) == trim(local_res)) then
           write(*,'(A1)', advance="no") "."
         else
@@ -187,7 +187,7 @@ contains
         write(*,'(A1)', advance="no") "."
       end if
     else
-      local_res = re_match_str(re, str)
+      local_res = trim(re_match_str(re, str))
       if(present(res)) then
         write(*,'(A1)', advance="no") "F"
         nfails = nfails + 1
