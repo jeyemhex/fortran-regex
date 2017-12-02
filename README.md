@@ -11,23 +11,30 @@ Fortran. This is my progress so far...
 ```Fortran
 program re_example
   use regex
+
   implicit none
-
+  
+  character(len=3), allocatable :: list(:)
   ! String matching
-  print *, re_match("^Hello.*world!", "Hello, world!")    ! returns T
-  print *, re_match("^Hello\s+world", "Hello, world!")    ! returns F
-  print *, re_match_str("^Hello", "Hello, world!")        ! returns "Hello"
-
+  print *, re_match("^Hello.*world!", "Hello, world!")              ! returns T
+  print *, re_match("^Hello\s+world", "Hello, world!")              ! returns F
+  print *, trim( re_match_str("^Hello", "Hello, world!")     )      ! returns "Hello"
+  
   ! String splitting
-  print *, re_split("\s+", "12 16  2 9.6")                ! returns ["12 ", "16 ", "2  ", "9.6"]
 
+  call re_split("\s+", "12 16  2 9.6", list)                        ! returns ["12 ", "16 ", "2  ", "9.6"]
+  print *, list
+  deallocate(list)
+  
   ! String replacing
-  print *, re_replace("Hello", "Goodbye", "Hello, world!" ! returns "Goodbye, world!"
+  print *, trim( re_replace("Hello", "Goodbye", "Hello, world!") )  ! returns "Goodbye, world!"
+  
+end program re_example
   
 ```
 
 ## Prerequisites
-VScreen currently requires:
+regex.f90 currently requires:
 
   - Requires a Fortran 2003 compiler
 
