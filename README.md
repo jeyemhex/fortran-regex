@@ -17,13 +17,15 @@ program re_example
   character(len=3), allocatable :: list(:)
   ! String matching
   print *, re_match("^Hello.*world!", "Hello, world!")              ! returns T
-  print *, re_match("^Hello\s+world", "Hello, world!")              ! returns F
+  print *, re_match("^Hello\s+world", "Hello, world!")              ! returns F, no comma in regex
   print *, trim( re_match_str("^Hello", "Hello, world!")     )      ! returns "Hello"
   
   ! String splitting
 
   call re_split("\s+", "12 16  2 9.6", list)                        ! returns ["12 ", "16 ", "2  ", "9.6"]
-  print *, list
+  do i = 1, size(list)
+    print *, "'" // list(i) // "'"
+  end do
   deallocate(list)
   
   ! String replacing
