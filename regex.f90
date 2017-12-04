@@ -285,7 +285,6 @@ contains
     new_list%side =  side
     new_list%next => null()
     new_list%refs =  0
-    print *, "Allocating", loc(new_list)
 
   end function new_list
 
@@ -293,21 +292,14 @@ contains
     type(ptr_list), pointer, intent(inout) :: l
     character(len=*) , intent(in) :: name
 
-    print *, "Nullifying " // name // " at", loc(l)
     if (associated(l)) then
-
-      if(associated(l%next)) then 
-        print *, "Recursing"
-        call nullify_list(l%next,"l%next")
-      end if
-
       l%refs=l%refs-1
-      print *, "1:" , loc(l), "now has", l%refs, "references"
-      if(l%refs == 0) then
-        print *, "Deallocating ", loc(l)
 
+      if(l%refs == 0) then
+        if(associated(l%next)) call nullify_list(l%next,"l%next")
         deallocate(l)
       end if
+
       l => null()
     end if
 
@@ -317,13 +309,12 @@ contains
     type(ptr_list), pointer, intent(in) :: from
     type(ptr_list), pointer, intent(inout) :: to
     character(len=*), intent(in) :: name
-    print *, "Pointing "// name// " at", loc(from)
 
     if(associated(to)) call nullify_list(to,"to")
+
     if(associated(from)) then
       to => from
       to%refs = to%refs + 1
-      print *, "2:", loc(to), "now has", to%refs, "references"
     endif
 
   end subroutine point_list
@@ -689,7 +680,6 @@ contains
 
     nfa%head => null()
     nfa%states => null()
-    print *, "The next one is the awkward one"
     call point_list(new_list(null(), 0), nfa%states," nfa%states")
     nfa%n_states = 0
 
@@ -712,7 +702,6 @@ contains
 
     call deallocate_list(nfa%states, keep_states=.false., n_states = nfa%n_states)
     nfa%head => null()
-    print *, "Remaining states:", nfa%n_states
     if (nfa%n_states /= 0) stop "Some states are still allocated!"
 
   end subroutine deallocate_nfa
@@ -888,7 +877,6 @@ contains
 
       call append(nfa%states, new_list(new_state, -1))
       nfa%n_states = nfa%n_states + 1
-
 
     end function new_state
 
