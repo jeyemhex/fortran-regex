@@ -24,9 +24,10 @@ module regex
 
   public :: re_match, re_match_str, re_split, re_replace
 
-  integer,  parameter ::  pf_buff_size  = 8000  ! Maximum size of the postfix buffer
-  integer,  parameter ::  pf_stack_size = 4000  ! Maximum size of the postfix stack
-  integer,  parameter ::  nfa_max_print = 16    ! Maximum depth for print_state
+  integer,  parameter ::  pf_buff_size    = 8000  ! Maximum size of the postfix buffer
+  integer,  parameter ::  pf_stack_size   = 4000  ! Maximum size of the postfix stack
+  integer,  parameter ::  nfa_max_print   = 16    ! Maximum depth for print_state
+  integer,  parameter ::  max_paren_depth = 100   ! Maximum depth of nested ()'s
 
   ! Special NFA states
   integer,  parameter ::  null_st      = -1  ! denotes a NULL node in the nfa
@@ -64,7 +65,7 @@ module regex
   ! Full NFA and list of states
   type, public :: nfa_type
     type(state),    pointer :: head
-    type(ptr_list), pointer :: states
+    type(ptr_list), pointer :: states => null()
     integer                 :: n_states
   end type nfa_type
 
@@ -81,6 +82,7 @@ module regex
     type(state),    pointer ::  s    => null()
     integer                 ::  side =  -1
     type(ptr_list), pointer ::  next => null()
+    integer                 ::  refs =  0
   end type ptr_list
 
   ! NFA fragment
@@ -274,17 +276,60 @@ contains
 
     integer ::  ierr
 
+    new_list => null()
+
     allocate(new_list, stat=ierr)
     if (ierr /= 0) stop "Unable to allocate new_list"
 
     new_list%s    => outp
     new_list%side =  side
     new_list%next => null()
+    new_list%refs =  0
+    print *, "Allocating", loc(new_list)
 
   end function new_list
 
+  recursive subroutine nullify_list(l,name)
+    type(ptr_list), pointer, intent(inout) :: l
+    character(len=*) , intent(in) :: name
+
+    print *, "Nullifying " // name // " at", loc(l)
+    if (associated(l)) then
+
+      if(associated(l%next)) then 
+        print *, "Recursing"
+        call nullify_list(l%next,"l%next")
+      end if
+
+      l%refs=l%refs-1
+      print *, "1:" , loc(l), "now has", l%refs, "references"
+      if(l%refs == 0) then
+        print *, "Deallocating ", loc(l)
+
+        deallocate(l)
+      end if
+      l => null()
+    end if
+
+  end subroutine nullify_list
+
+  subroutine point_list(from, to,name)
+    type(ptr_list), pointer, intent(in) :: from
+    type(ptr_list), pointer, intent(inout) :: to
+    character(len=*), intent(in) :: name
+    print *, "Pointing "// name// " at", loc(from)
+
+    if(associated(to)) call nullify_list(to,"to")
+    if(associated(from)) then
+      to => from
+      to%refs = to%refs + 1
+      print *, "2:", loc(to), "now has", to%refs, "references"
+    endif
+
+  end subroutine point_list
+
   !------------------------------------------------------------------------------!
-    function append(l1, l2)                                                      !
+    subroutine append(l1, l2)                                                    !
   !------------------------------------------------------------------------------!
   ! DESCRPTION                                                                   !
   !   Routine to append ptr_list l2 to the end of ptr_list l1.                   !
@@ -303,18 +348,23 @@ contains
   ! AUTHORS                                                                      !
   !   Edward Higgins, 2016-02-01                                                 !
   !------------------------------------------------------------------------------!
-    type(ptr_list), pointer ::  append
     type(ptr_list), pointer,  intent(inout) :: l1
     type(ptr_list), pointer,  intent(in)    :: l2
 
-    append => l1
-    do while ( associated(l1%next) )
-      l1 => l1%next
+    type(ptr_list), pointer :: tmp_l
+
+    tmp_l => null()
+
+    call point_list(l1, tmp_l," tmp_l")
+    do while ( associated(tmp_l%next) )
+      call point_list(tmp_l%next, tmp_l," tmp_l")
     end do
 
-    l1%next => l2
+    call point_list(l2, tmp_l%next," tmp_l%next")
 
-  end function append
+    call nullify_list(tmp_l,"tmp_l")
+
+  end subroutine append
 
   !------------------------------------------------------------------------------!
     subroutine deallocate_list(l, keep_states, n_states)                         !
@@ -343,24 +393,23 @@ contains
     logical ::  local_ks
     integer ::  ierr
 
+    tmp_l => null()
     local_ks = .false.
     if (present(keep_states)) local_ks = keep_states
 
     if (.not. associated(l)) return
 
     do while (associated(l%next))
-      tmp_l => l
-      l => tmp_l%next
+      call point_list(l, tmp_l," tmp_l")
+      call point_list(tmp_l%next, l," l")
       if ((associated(tmp_l%s)) .and. (.not. local_ks)) then
         deallocate(tmp_l%s)
         if (present(n_states)) n_states = n_states - 1
       else
         tmp_l%s => null()
       end if
-      tmp_l%next => null()
-      deallocate(tmp_l, stat=ierr)
-      if (ierr /= 0) stop "Unable to deallocate list tmp_l"
-      tmp_l => null()
+!EJH!       call nullify_list(tmp_l%next,"tmp_l%next")
+      call nullify_list(tmp_l,"tmp_l")
     end do
 
     if ((associated(l%s)) .and. (.not. local_ks)) then
@@ -371,10 +420,9 @@ contains
       l%s => null()
     end if
 
-!EJH!     ! If this is uncommented, it segfaults.. this is bad!
-!EJH!     if (associated(l)) deallocate(l, stat=ierr)
-!EJH!     if (ierr /= 0) stop "Unable to deallocate list l"
-    l => null()
+!EJH!     call nullify_list(tmp_l,"tmp_l")
+
+    call nullify_list(l,"l")
 
   end subroutine deallocate_list
 
@@ -399,7 +447,9 @@ contains
 
     type(ptr_list), pointer :: tmp_l
 
-    tmp_l => l
+    tmp_l => null()
+
+    call point_list(l, tmp_l," tmp_l")
     do while ( associated(tmp_l) )
       select case(tmp_l%side)
         case(1)
@@ -409,8 +459,10 @@ contains
         case default
           stop "Unexpected value of side"
       end select
-      tmp_l => tmp_l%next
+      call point_list(tmp_l%next, tmp_l," tmp_l")
     end do
+
+    call nullify_list(tmp_l,"tmp_l")
 
   end subroutine patch
 
@@ -437,7 +489,7 @@ contains
 
     integer          :: n_alt, n_atom
     integer          :: re_loc, pf_loc
-    type(paren_list) :: paren(100)
+    type(paren_list) :: paren(max_paren_depth)
     integer          :: par_loc
     logical          :: escaped
     integer          :: escaped_chr
@@ -636,7 +688,9 @@ contains
     type(nfa_type), intent(inout) :: nfa
 
     nfa%head => null()
-    nfa%states => new_list(null(), 0)
+    nfa%states => null()
+    print *, "The next one is the awkward one"
+    call point_list(new_list(null(), 0), nfa%states," nfa%states")
     nfa%n_states = 0
 
   end subroutine allocate_nfa
@@ -658,6 +712,7 @@ contains
 
     call deallocate_list(nfa%states, keep_states=.false., n_states = nfa%n_states)
     nfa%head => null()
+    print *, "Remaining states:", nfa%n_states
     if (nfa%n_states /= 0) stop "Some states are still allocated!"
 
   end subroutine deallocate_nfa
@@ -731,14 +786,16 @@ contains
           e2 => pop()
           e1 => pop()
           s => new_state( split_st, e1%start, e2%start )
-          call push( new_frag(s, append(e1%out1, e2%out1)) )
+          call append(e1%out1, e2%out1)
+          call push( new_frag(s, e1%out1) )
           e1 => null()
           e2 => null()
 
         case(quest_op)
           e => pop()
           s => new_state( split_st, e%start, nullstate )
-          call push( new_frag(s, append(e%out1, new_list(s,2)))  )
+          call append(e%out1, new_list(s,2))
+          call push( new_frag(s, e%out1) )
           e => null()
 
         case(star_op)
@@ -802,7 +859,7 @@ contains
 
       allocate(new_frag)
       new_frag%start => s
-      new_frag%out1  => l
+      call point_list(l, new_frag%out1," new_frag%out1")
 
       nfrags = nfrags + 1
       allocated_frags(nfrags)%elem => new_frag
@@ -819,11 +876,9 @@ contains
       integer,                intent(in)  ::  c
       type(state),  pointer,  intent(in)  ::  out1, out2
 
-      type(ptr_list), pointer ::  tmp_l
       integer ::  ierr
 
       new_state => null()
-      tmp_l => null()
       allocate(new_state, stat=ierr)
       if (ierr /= 0) stop "Unable to allocate new_state"
       new_state%last_list = 0
@@ -831,9 +886,9 @@ contains
       new_state%out1 => out1
       new_state%out2 => out2
 
-      tmp_l => append(nfa%states, new_list(new_state, -1))
-      nfa%states => tmp_l
+      call append(nfa%states, new_list(new_state, -1))
       nfa%n_states = nfa%n_states + 1
+
 
     end function new_state
 

@@ -1,5 +1,6 @@
 FC      = gfortran
-FCFLAGS = -O0 -g -fcheck=all -fno-realloc-lhs -Wall -std=f2003
+#EJH# FCFLAGS = -O0 -g -fcheck=all -fno-realloc-lhs -Wall -std=f2003
+FCFLAGS = -O0 -g -fcheck=all -fno-realloc-lhs -Wall
 FLFLAGS = 
 
 all: re_example re_test re_check
