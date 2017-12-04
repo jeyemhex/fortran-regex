@@ -288,15 +288,27 @@ contains
 
   end function new_list
 
-  recursive subroutine nullify_list(l,name)
+  !------------------------------------------------------------------------------!
+    recursive subroutine nullify_list(l)                                         !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   A routine to nullify a ptr_list. If the list is left unreferenced,         !
+  !   also deallocate it.                                                        !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   type(ptr_list),    pointer,  intent(in)  ::  l                             !
+  !     The list to be nullified                                                 !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2017-12-04                                                 !
+  !------------------------------------------------------------------------------!
     type(ptr_list), pointer, intent(inout) :: l
-    character(len=*) , intent(in) :: name
 
     if (associated(l)) then
       l%refs=l%refs-1
 
       if(l%refs == 0) then
-        if(associated(l%next)) call nullify_list(l%next,"l%next")
+        if(associated(l%next)) call nullify_list(l%next)
         deallocate(l)
       end if
 
@@ -305,16 +317,30 @@ contains
 
   end subroutine nullify_list
 
-  subroutine point_list(from, to,name)
-    type(ptr_list), pointer, intent(in) :: from
-    type(ptr_list), pointer, intent(inout) :: to
-    character(len=*), intent(in) :: name
+  !------------------------------------------------------------------------------!
+    subroutine point_list(l1, l2)                                                !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   A routine to point one ptr_list at another (l1 => l2), whilst also keeping !
+  !   track of how many references each list has pointing to it.                 !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   type(ptr_list),    pointer,  intent(inout)  :: l1                          !
+  !     The list to be nullified                                                 !
+  !   type(ptr_list),    pointer,  intent(in)     :: l2                          !
+  !     The list to be nullified                                                 !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2017-12-04                                                 !
+  !------------------------------------------------------------------------------!
+    type(ptr_list), pointer, intent(inout)  :: l1
+    type(ptr_list), pointer, intent(in)     :: l2
 
-    if(associated(to)) call nullify_list(to,"to")
+    if(associated(l1)) call nullify_list(l1)
 
-    if(associated(from)) then
-      to => from
-      to%refs = to%refs + 1
+    if(associated(l2)) then
+      l1 => l2
+      l1%refs = l1%refs + 1
     endif
 
   end subroutine point_list
@@ -346,14 +372,14 @@ contains
 
     tmp_l => null()
 
-    call point_list(l1, tmp_l," tmp_l")
+    call point_list(tmp_l, l1)
     do while ( associated(tmp_l%next) )
-      call point_list(tmp_l%next, tmp_l," tmp_l")
+      call point_list(tmp_l, tmp_l%next)
     end do
 
-    call point_list(l2, tmp_l%next," tmp_l%next")
+    call point_list(tmp_l%next, l2)
 
-    call nullify_list(tmp_l,"tmp_l")
+    call nullify_list(tmp_l)
 
   end subroutine append
 
@@ -391,16 +417,15 @@ contains
     if (.not. associated(l)) return
 
     do while (associated(l%next))
-      call point_list(l, tmp_l," tmp_l")
-      call point_list(tmp_l%next, l," l")
+      call point_list(tmp_l, l)
+      call point_list(l, tmp_l%next)
       if ((associated(tmp_l%s)) .and. (.not. local_ks)) then
         deallocate(tmp_l%s)
         if (present(n_states)) n_states = n_states - 1
       else
         tmp_l%s => null()
       end if
-!EJH!       call nullify_list(tmp_l%next,"tmp_l%next")
-      call nullify_list(tmp_l,"tmp_l")
+      call nullify_list(tmp_l)
     end do
 
     if ((associated(l%s)) .and. (.not. local_ks)) then
@@ -411,9 +436,7 @@ contains
       l%s => null()
     end if
 
-!EJH!     call nullify_list(tmp_l,"tmp_l")
-
-    call nullify_list(l,"l")
+    call nullify_list(l)
 
   end subroutine deallocate_list
 
@@ -440,7 +463,7 @@ contains
 
     tmp_l => null()
 
-    call point_list(l, tmp_l," tmp_l")
+    call point_list(tmp_l, l)
     do while ( associated(tmp_l) )
       select case(tmp_l%side)
         case(1)
@@ -450,10 +473,10 @@ contains
         case default
           stop "Unexpected value of side"
       end select
-      call point_list(tmp_l%next, tmp_l," tmp_l")
+      call point_list(tmp_l, tmp_l%next)
     end do
 
-    call nullify_list(tmp_l,"tmp_l")
+    call nullify_list(tmp_l)
 
   end subroutine patch
 
@@ -680,7 +703,7 @@ contains
 
     nfa%head => null()
     nfa%states => null()
-    call point_list(new_list(null(), 0), nfa%states," nfa%states")
+    call point_list(nfa%states, new_list(null(), 0))
     nfa%n_states = 0
 
   end subroutine allocate_nfa
@@ -848,7 +871,7 @@ contains
 
       allocate(new_frag)
       new_frag%start => s
-      call point_list(l, new_frag%out1," new_frag%out1")
+      call point_list(new_frag%out1, l)
 
       nfrags = nfrags + 1
       allocated_frags(nfrags)%elem => new_frag
