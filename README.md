@@ -86,6 +86,8 @@ This can be done, as menioned above, by escaping the space `"a\ b"`, or using
 readability of the resulting regular expressions, and was borrowed from Perl's
 `/<regex>/x` functionality.
 
+For more examples of the syntax, see `re_test.f90`.
+
 ### NOT YET IMPLEMENTED
 This is, (and will continue to be for a while I'm afraid), a work in progress.
 As a result, I have not finished implementing all the features I would like.
@@ -103,6 +105,7 @@ Some features I would like to implement before I decide this is complete are:
       * `match([1])` would return `bc`
       * `match([2])` would return `de`
       * `match([2,1])` would return `d`
+
 
 ## Prerequisites
 regex.f90 currently requires:
