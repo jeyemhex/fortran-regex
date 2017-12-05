@@ -3,7 +3,7 @@ program re_check
 
   character(len=100) :: str, re, repl
 
-  if(command_argument_count() /= 3) stop "Needs 2 arguments"
+  if(command_argument_count() /= 3) stop "Needs 3 arguments"
 
   call get_command_argument(1, re)
   call get_command_argument(2, repl)
