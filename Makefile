@@ -23,6 +23,9 @@ re_check.o: regex.o
 %.o: %.f90
 	$(FC) $(FCFLAGS) -c $<
 
+test: re_test
+	./re_test
+
 clean:
 	rm -rf *.o *.mod re_test re_check re_example
 
