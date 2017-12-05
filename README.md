@@ -94,7 +94,7 @@ Some features I would like to implement before I decide this is complete are:
   * Arbitrary character groups, eg. `'[aeiouAEIOU]'` to match only vowels
   * Case insensitive searching
   * A negation operation. I'm tempted to use `'c!'` as a "matches zero `c`'s"
-    operation, but I haven't really thought too much about hte consequences of
+    operation, but I haven't really thought too much about the consequences of
     that yet.
   * More fine-grained match counting, eg. `'ab{2:3}c'` to only match `abbc` or `abbbc`
 
