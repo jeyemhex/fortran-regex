@@ -3,7 +3,7 @@ FC      = gfortran
 FCFLAGS = -O0 -g -fcheck=all -fno-realloc-lhs -Wall
 FLFLAGS = 
 
-all: re_example re_test re_check
+all: re_example re_test
 
 re_example: re_example.o regex.o
 
@@ -12,10 +12,6 @@ re_example.o: regex.o
 re_test: re_test.o regex.o
 
 re_test.o: regex.o 
-
-re_check: re_check.o regex.o
-
-re_check.o: regex.o
 
 %: %.o
 	$(FC) -o $@ $^ $(FLFLAGS)
@@ -27,7 +23,7 @@ test: re_test
 	./re_test
 
 clean:
-	rm -rf *.o *.mod re_test re_check re_example
+	rm -rf *.o *.mod re_test re_example
 
 again:
 	$(MAKE) clean

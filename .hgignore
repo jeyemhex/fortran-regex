@@ -1,5 +1,5 @@
 ^.*.o
 ^.*.mod
 ^re_test$
-^re_check$
+^re_example$
 ^\..+
