@@ -18,19 +18,19 @@ program re_example
   integer :: i
 
   ! String matching
-  print *, re_match("^Hello .* !", "Hello, world!")                 ! returns T
-  print *, re_match("^Hello \s+ world", "Hello, world!")            ! returns F, no comma
-  print *, trim( re_match_str("^Hello", "Hello, world!") )          ! returns "Hello"
+  print *, re_match("^Hello .* !", "Hello, world!")                 ! Returns T
+  print *, re_match("^Hello \s+ world", "Hello, world!")            ! Returns F, no comma
+  print *, trim( re_match_str("^Hello", "Hello, world!") )          ! Returns "Hello"
 
   ! String splitting
-  call re_split("\s* , \s*", "12, 16, 2, 9.6", list)                ! returns ["12 ", "16 ", "2  ", "9.6"]
+  call re_split("\s* , \s*", "12, 16, 2, 9.6", list)                ! Returns ["12 ", "16 ", "2  ", "9.6"]
   do i = 1, size(list)
     print *, "'" // list(i) // "'"
   end do
   deallocate(list)
 
   ! String replacing
-  print *, trim( re_replace("Hello", "Goodbye", "Hello, world!") )  ! returns "Goodbye, world!"
+  print *, trim( re_replace("Hello", "Goodbye", "Hello, world!") )  ! Returns "Goodbye, world!"
 
 end program re_example
 ```
@@ -46,7 +46,7 @@ The basic syntax is as follows:
   * `'c'` is a regular character, as should be expected.
   * `'c*'` matches zero or more `c`
   * `'c+'` matches one or more `c`
-  * `'c?'` matche  zero or one `c`
+  * `'c?'` matches  zero or one `c`
   * `'^c'` matches an `c` at beginning of the string.
   * `'c$'` matches an `c` at end of the string.
   * `'ab|cd'` matches `ab` OR `cd`
@@ -62,9 +62,9 @@ Most common character groups are also available:
   * `'\a'` matches any alphanumeric character ([a:z]|[A:Z])
   * `'\d'` matches any decimal character ([0:9])
   * `'\w'` matches any word character (\a|\d|'_')
-  * `'\s'` matches any whitespace character (" "|\t)
+  * `'\s'` matches any white-space character (" "|\t)
 
-In addition, the captial of the above match anything but that character (except
+In addition, the capital of the above match anything but that character (except
 capital `.` of course. Maybe I'll implement that when I know what capital `.`
 is...).  
 
@@ -77,11 +77,11 @@ for example:
   * etc...
 
 One important difference between this implementation and many others is that
-whitespace in the regular expression is ignored. For example:
+white-space in the regular expression is ignored. For example:
 
  * `"a b"` will match `ab` but not `a b`. 
 
-This can be done, as menioned above, by escaping the space `"a\ b"`, or using
+This can be done, as mentioned above, by escaping the space `"a\ b"`, or using
 `\s` if you don't mind tabs being captured too. This is to hopefully improve
 readability of the resulting regular expressions, and was borrowed from Perl's
 `/<regex>/x` functionality.
@@ -93,14 +93,14 @@ This is, (and will continue to be for a while I'm afraid), a work in progress.
 As a result, I have not finished implementing all the features I would like.
 Some features I would like to implement before I decide this is complete are:
 
-  * Arbitrary character groups, eg. `'[aeiouAEIOU]'` to match only vowels
+  * Arbitrary character groups, e.g. `'[aeiouAEIOU]'` to match only vowels
   * Case insensitive searching
   * A negation operation. I'm tempted to use `'c!'` as a "matches zero `c`'s"
     operation, but I haven't really thought too much about the consequences of
     that yet.
-  * More fine-grained match counting, eg. `'ab{2:3}c'` to only match `abbc` or `abbbc`
+  * More fine-grained match counting, e.g. `'ab{2:3}c'` to only match `abbc` or `abbbc`
 
-  * Some way of refering back to bracketed expressions, eg. after matching `'a(bc)((d)e)'`
+  * Some way of referring back to bracketed expressions, e.g. after matching `'a(bc)((d)e)'`
       * `match([])` would return `abcde`
       * `match([1])` would return `bc`
       * `match([2])` would return `de`
@@ -112,8 +112,15 @@ regex.f90 currently requires:
 
   * Fortran 2003 compiler
 
-# Version
+## Acknowledgements
+
+This implementation of regular expressions was based on Russ Cox's description
+at [https://swtch.com/~rsc/regexp](https://swtch.com/~rsc/regexp). Many thanks
+to Russ for his excellent webpage!
+
+
+## Version
 v0.3.1: 2017-12-04
 
-# Author
+## Author
 Edward Higgins
