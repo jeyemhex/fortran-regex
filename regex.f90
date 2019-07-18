@@ -56,7 +56,7 @@ module regex
   integer,  parameter ::  start_ch     = 410 ! ^  match (start of the string)
   integer,  parameter ::  finish_ch    = 411 ! $  match (end of the string)
 
-  ! List of parentheses for building the postfix
+  ! List of parentheses for building the postfix (I'll be honest, I don't quite get how this works)
   type  ::  paren_list
     integer ::  n_atom
     integer ::  n_alt
@@ -64,31 +64,31 @@ module regex
 
   ! Full NFA and list of states
   type, public :: nfa_type
-    type(state),    pointer :: head
-    type(ptr_list), pointer :: states => null()
-    integer                 :: n_states
+    type(state),    pointer :: head             ! Starting state for the NFA
+    type(ptr_list), pointer :: states => null() ! A list of all the states in this nfa
+    integer                 :: n_states         ! Number of states in the NFA
   end type nfa_type
 
   ! State in the NFA
   type, public  :: state
-    integer               ::  c
-    type(state),  pointer ::  out1 => null()
-    type(state),  pointer ::  out2 => null()
-    integer               ::  last_list
+    integer               ::  c                 ! Character/code to match
+    type(state),  pointer ::  out1 => null()    ! Optional output 1 from the state
+    type(state),  pointer ::  out2 => null()    ! Optional output 1 from the state
+    integer               ::  last_list         ! State list tracker for fast NFA running
   end type state
 
   ! List of pointers to states
   type  :: ptr_list
-    type(state),    pointer ::  s    => null()
-    integer                 ::  side =  -1
-    type(ptr_list), pointer ::  next => null()
-    integer                 ::  refs =  0
+    type(state),    pointer ::  s    => null()  ! The state
+    integer                 ::  side =  -1      ! Is this the left or right side of a branch?
+    type(ptr_list), pointer ::  next => null()  ! Next state in the list
+    integer                 ::  refs =  0       ! Number of references to this list item
   end type ptr_list
 
   ! NFA fragment
   type  :: frag
-    type(state),    pointer ::  start => null()
-    type(ptr_list), pointer ::  out1  => null()
+    type(state),    pointer ::  start => null() ! Starting state of the fragment
+    type(ptr_list), pointer ::  out1  => null() ! List of all output states from the fragment
   end type frag
 
   ! Fragment stack node
@@ -168,6 +168,7 @@ contains
           stop
       end select
     end do print_loop
+
   end subroutine print_pf
 
   !------------------------------------------------------------------------------!
@@ -199,11 +200,13 @@ contains
       local_depth = depth
     end if
 
+    ! Limit depth of print, mostly to avoid infinite loops
     if (local_depth > nfa_max_print) then
       print *, "Trying to print a superdeep structure!"
     else
       tmp_s => s
       if (tmp_s%c /= null_st) then
+        ! Make sure the state is properly indeneted
         do i = 1, local_depth
           write(*,'(A3)', advance="no") "|  "
         end do
@@ -244,6 +247,8 @@ contains
           stop "Unrecognised character in print_state"
       end select
       end if
+
+      ! if the state has any output states, print them too
       if (associated(tmp_s%out1)) call print_state(tmp_s%out1, depth=local_depth+1)
       if (associated(tmp_s%out2)) call print_state(tmp_s%out2, depth=local_depth+1)
     end if
@@ -767,7 +772,6 @@ contains
     allocate(stack(pf_stack_size),stat=ierr)
     if (ierr /= 0) stop "Unable to allocate stack"
 
-
     do i = 1, pf_stack_size
       stack(i)%elem => null()
       allocated_frags(i)%elem => null()
@@ -1036,6 +1040,7 @@ contains
       type(list),   target,   intent(inout)  ::  l(:)
       integer,                intent(inout)  ::  n_l
       type(state),  pointer,  intent(inout)  ::  s
+      
 
       n_l = 1
       list_id = list_id + 1
@@ -1372,7 +1377,6 @@ contains
 
   end function run_nfa_full
 
-
   !------------------------------------------------------------------------------!
     function re_match(re, str)                                                   !
   !------------------------------------------------------------------------------!
@@ -1492,7 +1496,6 @@ contains
     integer :: istart, fin, isplit, last_fin, n_splits
 
     istart = 1
-
 
     if (len_trim(re) < 1) stop "Regular expression cannot be of length 0"
     postfix = re_to_pf(trim(re))
