@@ -3,13 +3,14 @@ program re_test
   implicit none
 
   character(len=120)  ::  failed(6,1000)
-  integer ::  ifail, nfails, ntests
+  integer ::  ifail, nfails, nskips, ntests
 
   nfails = 0
+  nskips = 0
   ntests = 0
   failed = ""
 
- ! Single character matching
+! Single character matching
   call test("a"    , "a"   , .true. , "a"   )
   call test("a"    , "b"   , .false.        )
   call test("a"    , "abc" , .true. , "a"   )
@@ -129,7 +130,7 @@ program re_test
   call test("^(\d+(\.\d*)?)$"                           , "6."                    , .true. , "6."     )
   call test("^(\d+(\.\d*)?)$"                           , ".32"                   , .false.           )
   call test("^((\d+\.\d*|\d*\.\d+|\d+))$"               , ".32"                   , .true. , ".32"    )
-  call test("^(.+\d\d\d)$"                              , "x123"                  , .true. , "x123"   )
+  call test("^(.\d\d\d)$"                              , "x123"                  , .true. , "x123"   )
   call test("^(.+\d\d\d)$"                              , "x1234"                 , .true. , "x1234"  )
   call test("^(.+\d\d\d)$"                              , "xx123"                 , .true. , "xx123"  )
   call test("^(.+\d\d\d)$"                              , "12345"                 , .true. , "12345"  )
@@ -145,17 +146,19 @@ program re_test
   print *, " "
   select case (ntests)
     case(0:9)
-      write(*,'(I1,A1,I1,A14)') ntests-nfails, '/', ntests, ' tests passed!'
+      write(*,'(I1,A1,I1,A14)') ntests-nfails-nskips, '/', ntests, ' tests passed!'
     case(10:99)
-      write(*,'(I2,A1,I2,A14)') ntests-nfails, '/', ntests, ' tests passed!'
+      write(*,'(I2,A1,I2,A14)') ntests-nfails-nskips, '/', ntests, ' tests passed!'
     case(100:999)
-      write(*,'(I3,A1,I3,A14)') ntests-nfails, '/', ntests, ' tests passed!'
+      write(*,'(I3,A1,I3,A14)') ntests-nfails-nskips, '/', ntests, ' tests passed!'
     case default
       write(*,*) "Really?! You have", ntests, "tests??"
   end select
 
   if(nfails > 0) then
+    write(*,*) " "
     call print_failures(nfails, failed, 0)
+    stop nfails
   end if
 
 contains
@@ -223,6 +226,18 @@ contains
     ntests = ntests + 1
 
   end subroutine test
+
+  subroutine skip_test(re, str, succ, res)
+    character(len=*), intent(in)           :: re
+    character(len=*), intent(in)           :: str
+    logical,          intent(in)           :: succ
+    character(len=*), intent(in), optional :: res
+
+    write(*,'(A1)', advance="no") "s"
+    nskips = nskips + 1
+    ntests = ntests + 1
+
+  end subroutine skip_test
 
   subroutine print_failures(nfails, failed, f)
     integer,  intent(in)  ::  nfails
