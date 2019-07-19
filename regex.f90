@@ -40,8 +40,8 @@ module regex
   integer,  parameter ::  quest_op     = 303 ! ? operator (0 or 1)
   integer,  parameter ::  or_op        = 304 ! | operator (a or b)
   integer,  parameter ::  cat_op       = 305 ! . operator (cats 2 fragments)
-  integer,  parameter ::  open_par_op  = 306 ! ( operator (for constructing match list)
-  integer,  parameter ::  close_par_op = 307 ! ) operator (for constructing match list)
+  integer,  parameter ::  open_par_ch  = 306 ! ( operator (for constructing match list)
+  integer,  parameter ::  close_par_ch = 307 ! ) operator (for constructing match list)
 
   ! NFA special matches
   integer,  parameter ::  any_ch       = 401 ! .  match (anything)
@@ -55,6 +55,8 @@ module regex
   integer,  parameter ::  n_space_ch   = 409 ! \S match (anything but \s)
   integer,  parameter ::  start_ch     = 410 ! ^  match (start of the string)
   integer,  parameter ::  finish_ch    = 411 ! $  match (end of the string)
+
+  logical,  parameter :: debug = .false.
 
   ! List of parentheses for building the postfix (I'll be honest, I don't quite get how this works)
   type  ::  paren_list
@@ -138,7 +140,7 @@ contains
        end if
      end if
 
-     stop
+     error stop
 
    end subroutine abort
 
@@ -184,6 +186,78 @@ contains
 
 
   !------------------------------------------------------------------------------!
+    function token(ch)                                                           !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Convert an integer char code to a printable token
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   integer, intent(in) :: pf(:)                                               !
+  !     Postfix expression stored as an array of integers                        !
+  !------------------------------------------------------------------------------!
+  ! RETURNS                                                                      !
+  !   char(len=5) :: token                                                       !
+  !     The printable token                                                      !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2019-07-19                                                 !
+  !------------------------------------------------------------------------------!
+    character(len=5)      :: token
+    integer,  intent(in)  ::  ch
+
+      select case(ch)
+        case(null_st)
+          token = "     "
+        case(1:255)
+          token = achar(ch) // "   "
+        case(open_par_ch)
+          token = "OP ( "
+        case(close_par_ch)
+          token = "CL ) "
+        case(cat_op)
+          token = "CAT  "
+        case(plus_op)
+          token = "PLUS "
+        case(or_op)
+          token = "OR   "
+        case(quest_op)
+          token = "QUE  "
+        case(star_op)
+          token = "STAR "
+
+        case(split_st)
+          token = "SPLIT"
+        case(match_st)
+          token = "MATCH"
+        case(any_ch)
+          token = ".    "
+        case(start_ch)
+          token = "START"
+        case(finish_ch)
+          token = "FIN  "
+        case(alpha_ch)
+          token = "\a   "
+        case(numeric_ch)
+          token = "\d   "
+        case(word_ch)
+          token = "\w   "
+        case(space_ch)
+          token = "\s   "
+        case(n_alpha_ch)
+          token = "\A   "
+        case(n_numeric_ch)
+          token = "\D   "
+        case(n_word_ch)
+          token = "\W   "
+        case(n_space_ch)
+          token = "\S   "
+        case default
+          call abort("Unrecognised character" //  char(ch))
+      end select
+
+    end function token
+
+  !------------------------------------------------------------------------------!
     subroutine print_pf(pf)                                                      !
   !------------------------------------------------------------------------------!
   ! DESCRPTION                                                                   !
@@ -201,55 +275,8 @@ contains
     integer ::  i
 
     print_loop: do i = 1, size(pf)
-      select case(pf(i))
-        case(null_st)
-          exit print_loop
-        case(1:255)
-          write(*,'(A7,A4)') achar(pf(i)) // "   "
-        case(open_par_op)
-          write(*,'(A7,A5)') "OP ( "
-        case(close_par_op)
-          write(*,'(A7,A5)') "CL ) "
-        case(cat_op)
-          write(*,'(A7,A5)') "CAT  "
-        case(plus_op)
-          write(*,'(A7,A5)') "PLUS "
-        case(or_op)
-          write(*,'(A7,A5)') "OR   "
-        case(quest_op)
-          write(*,'(A7,A5)') "QUE  "
-        case(star_op)
-          write(*,'(A7,A5)') "STAR "
-
-        case(split_st)
-          write(*,'(A7,A5)') "SPLIT"
-        case(match_st)
-          write(*,'(A7,A5)') "MATCH"
-        case(any_ch)
-          write(*,'(A7,A5)') ".    "
-        case(start_ch)
-          write(*,'(A7,A5)') "START"
-        case(finish_ch)
-          write(*,'(A7,A5)') "FIN  "
-        case(alpha_ch)
-          write(*,'(A7,A5)') "\a   "
-        case(numeric_ch)
-          write(*,'(A7,A5)') "\d   "
-        case(word_ch)
-          write(*,'(A7,A5)') "\w   "
-        case(space_ch)
-          write(*,'(A7,A5)') "\s   "
-        case(n_alpha_ch)
-          write(*,'(A7,A5)') "\A   "
-        case(n_numeric_ch)
-          write(*,'(A7,A5)') "\D   "
-        case(n_word_ch)
-          write(*,'(A7,A5)') "\W   "
-        case(n_space_ch)
-          write(*,'(A7,A5)') "\S   "
-        case default
-          call abort("Unrecognised character" //  char(pf(i)))
-      end select
+      if (pf(i) == null_st) exit print_loop
+      write(*,'(A7,A5)') token(pf(i))
     end do print_loop
 
   end subroutine print_pf
@@ -293,42 +320,7 @@ contains
         do i = 1, local_depth
           write(*,'(A3)', advance="no") "|  "
         end do
-        select case (tmp_s%c)
-        case(1:255)
-          write(*,'(A7,A4)') "State: ", achar(tmp_s%c) // "   "
-        case(split_st)
-          write(*,'(A7,A5)') "State: ", "SPLIT"
-        case(match_st)
-          write(*,'(A7,A5)') "State: ", "MATCH"
-        case(open_par_op)
-          write(*,'(A7,A5)') "State: ", "OP ( "
-        case(close_par_op)
-          write(*,'(A7,A5)') "State: ", "CL ) "
-        case(any_ch)
-          write(*,'(A7,A5)') "State: ", ".    "
-        case(start_ch)
-          write(*,'(A7,A5)') "State: ", "START"
-        case(finish_ch)
-          write(*,'(A7,A5)') "State: ", "FIN  "
-        case(alpha_ch)
-          write(*,'(A7,A5)') "State: ", "\a   "
-        case(numeric_ch)
-          write(*,'(A7,A5)') "State: ", "\d   "
-        case(word_ch)
-          write(*,'(A7,A5)') "State: ", "\w   "
-        case(space_ch)
-          write(*,'(A7,A5)') "State: ", "\s   "
-        case(n_alpha_ch)
-          write(*,'(A7,A5)') "State: ", "\A   "
-        case(n_numeric_ch)
-          write(*,'(A7,A5)') "State: ", "\D   "
-        case(n_word_ch)
-          write(*,'(A7,A5)') "State: ", "\W   "
-        case(n_space_ch)
-          write(*,'(A7,A5)') "State: ", "\S   "
-        case default
-          call abort("Unrecognised character in print_state")
-      end select
+        write(*,'(A7,A5)') token(tmp_s%c)
       end if
 
       ! if the state has any output states, print them too
@@ -616,6 +608,7 @@ contains
             if (par_loc > size(paren)) call abort("Too many embedded brackets!", re, re_loc)
 
             if (n_atom > 1) call push_atom(cat_op)
+            call push_atom(open_par_ch)
 
             paren(par_loc)%n_alt  = n_alt
             paren(par_loc)%n_atom = n_atom
@@ -650,6 +643,7 @@ contains
             n_atom = paren(par_loc)%n_atom
             n_atom = n_atom + 1
 
+            call push_atom(close_par_ch)
 
           case('*')
             if (n_atom == 0) call abort("Nothing to *", re, re_loc)
@@ -731,6 +725,7 @@ contains
   contains 
     subroutine push_atom(atom)
       integer, intent(in) :: atom
+      integer :: tmp_pf_loc
 
       pf(pf_loc) = atom
       pf_loc = pf_loc + 1
@@ -742,8 +737,13 @@ contains
         case (or_op)
           n_alt = n_alt - 1
 
-        case (quest_op, plus_op, star_op, open_par_op, close_par_op)
-          ! do nothing
+        case (quest_op, plus_op, star_op)
+          tmp_pf_loc = pf_loc-1
+          do while (pf(tmp_pf_loc-1) == close_par_ch)
+            pf(tmp_pf_loc) = close_par_ch
+            pf(tmp_pf_loc-1) = atom
+            tmp_pf_loc = tmp_pf_loc - 1
+          end do
 
         case default
         n_atom = n_atom + 1
@@ -1189,11 +1189,11 @@ contains
               if (ch_loc == 1) call add_state(n_list, n_nl, s%out1)
               no_advance = .true.
 
-            case(open_par_op)
+            case(open_par_ch)
               call add_state(n_list, n_nl, s%out1)
               no_advance = .true.
 
-            case(close_par_op)
+            case(close_par_ch)
               call add_state(n_list, n_nl, s%out1)
               no_advance = .true.
 
@@ -1305,13 +1305,16 @@ contains
     if (present(finish)) finish = -1
     fin = -1
 
+
     if (present(s_in)) then
       istart = start
       s => s_in
+      if (debug) write(*,*) "Checking " // token(s%c) // " against " // str(start:start)
       call step()
     else
       start_loop: do istart = start, len(str)
         s => nfa%head
+        if (debug) write(*,*) "Checking " // token(s%c) // " against " // str(start:start)
         call step()
         if (res) exit start_loop
       end do start_loop
@@ -1321,6 +1324,8 @@ contains
       if (finish == -1) finish = fin
     end if
     start = istart
+
+    if (debug) write(*,*) "res = ", res, start, finish
 
   contains
 
@@ -1410,10 +1415,10 @@ contains
           case(start_ch)
             if (start == 1) res = run_nfa_full(nfa, str, start, fin, s_in = s%out1)
 
-          case(open_par_op)
+          case(open_par_ch)
             res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
 
-          case(close_par_op)
+          case(close_par_ch)
             res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
 
           case(finish_ch)
@@ -1423,6 +1428,12 @@ contains
         end select
       else
         select case(s%c)
+          case(open_par_ch)
+            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
+
+          case(close_par_ch)
+            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
+
           case( split_st )
             res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
             if (.not. res) res = run_nfa_full(nfa, str, istart, fin, s_in = s%out2)
@@ -1462,7 +1473,6 @@ contains
     character(len=*), intent(in)  ::  str
 
     integer                 ::  postfix(pf_buff_size)
-    logical                 ::  debug = .false.
     type(nfa_type)          ::  nfa
     integer ::  istart
 
@@ -1518,7 +1528,7 @@ contains
     postfix = re_to_pf(trim(re))
     nfa = pf_to_nfa(postfix)
 
-    match = run_nfa_fast(nfa, trim(str), istart, finish=ifin)
+    match = run_nfa_full(nfa, trim(str), istart, finish=ifin)
     if (match) re_match_str = str(istart:ifin)
 
     call deallocate_nfa(nfa)
