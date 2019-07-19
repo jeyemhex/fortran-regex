@@ -24,10 +24,10 @@ module regex
 
   public :: re_match, re_match_str, re_split, re_replace
 
-  integer,  parameter ::  pf_buff_size    = 8000  ! Maximum size of the postfix buffer
-  integer,  parameter ::  pf_stack_size   = 4000  ! Maximum size of the postfix stack
+  integer,  parameter ::  pf_buff_size    = 8192  ! Maximum size of the postfix buffer
+  integer,  parameter ::  pf_stack_size   = 4096  ! Maximum size of the postfix stack
   integer,  parameter ::  nfa_max_print   = 16    ! Maximum depth for print_state
-  integer,  parameter ::  max_paren_depth = 100   ! Maximum depth of nested ()'s
+  integer,  parameter ::  max_paren_depth = 128   ! Maximum depth of nested ()'s
 
   ! Special NFA states
   integer,  parameter ::  null_st      = -1  ! denotes a NULL node in the nfa
@@ -99,6 +99,90 @@ module regex
 !EJH!   integer ::  submatch_pars(pf_stack_size)
 
 contains
+
+  !------------------------------------------------------------------------------!
+    subroutine abort(error, regex, location)                                     !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Throw an error and abort the program                                       !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   character(len=*), intent(in) :: error                                      !
+  !     String to tell the user what's happened                                  !
+  !   character(len=*), intent(in), optional :: regex                            !
+  !     The regex that has failed                                                !
+  !   integer,          intent(in), optional :: location                         !
+  !     Where in the regex the failure occured                                   !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2019-08-18                                                 !
+  !------------------------------------------------------------------------------!
+    use ISO_FORTRAN_ENV, only: error_unit
+     character(len=*), intent(in)           :: error
+     character(len=*), intent(in), optional :: regex
+     integer,          intent(in), optional :: location
+
+     integer :: i
+
+     write(error_unit, '(2a)') "ERROR: ", error
+     
+     if (present(regex)) then
+       write(error_unit, '(a)') "Problem occured in regular expression:"
+       write(error_unit, '(a)') '  /' // regex //'/'
+
+       if (present(location)) then
+         do i=1, location+2
+           write(error_unit, '(a)', advance="no") " "
+         end do
+         write(error_unit, '(a)') "^ Here"
+       end if
+     end if
+
+     stop
+
+   end subroutine abort
+
+  !------------------------------------------------------------------------------!
+    subroutine warn(error, regex, location)                                      !
+  !------------------------------------------------------------------------------!
+  ! DESCRPTION                                                                   !
+  !   Throw a warning but don't abort the program                                !
+  !------------------------------------------------------------------------------!
+  ! ARGUMENTS                                                                    !
+  !   character(len=*), intent(in) :: error                                      !
+  !     String to tell the user what's happened                                  !
+  !   character(len=*), intent(in), optional :: regex                            !
+  !     The regex that has failed                                                !
+  !   integer                     , optional :: location                         !
+  !     Where in the regex the failure occured                                   !
+  !------------------------------------------------------------------------------!
+  ! AUTHORS                                                                      !
+  !   Edward Higgins, 2019-08-18                                                 !
+  !------------------------------------------------------------------------------!
+    use ISO_FORTRAN_ENV, only: error_unit
+     character(len=*), intent(in)           :: error
+     character(len=*), intent(in), optional :: regex
+     integer,          intent(in), optional :: location
+
+     integer :: i
+
+     write(error_unit, '(2a)') "WARNING: ", error
+     
+     if (present(regex)) then
+       write(error_unit, '(a)') "Problem occured in regular expression:"
+       write(error_unit, '(a)') '  /' // regex //'/'
+
+       if (present(location)) then
+         do i=1, location+2
+           write(error_unit, '(a)', advance="no") " "
+         end do
+         write(error_unit, '(a)') "^ Here"
+       end if
+     end if
+
+   end subroutine warn
+
+
   !------------------------------------------------------------------------------!
     subroutine print_pf(pf)                                                      !
   !------------------------------------------------------------------------------!
@@ -522,7 +606,7 @@ contains
 
     pf = null_st
 
-    if (len_trim(re) > pf_buff_size/2) stop "Regex too long!"
+    if (len_trim(re) > pf_buff_size/2) call abort("Regex too long", trim(re))
     do while (re_loc <= len_trim(re))
       if (.not. escaped) then
         select case(re(re_loc:re_loc))
@@ -535,7 +619,7 @@ contains
               pf(pf_loc) = cat_op
               pf_loc = pf_loc + 1
             end if
-            if (par_loc > size(paren)) stop "Too many embedded brackets!"
+            if (par_loc > size(paren)) call abort("Too many embedded brackets!", re, re_loc)
             paren(par_loc)%n_alt  = n_alt
             paren(par_loc)%n_atom = n_atom
             par_loc = par_loc + 1
@@ -543,7 +627,7 @@ contains
             n_atom  = 0
 
           case('|')
-            if (n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
+            if (n_atom == 0) call abort("Nothing to |", re, re_loc)
 
             n_atom = n_atom - 1
             do while (n_atom > 0)
@@ -554,8 +638,8 @@ contains
             n_alt = n_alt + 1
 
           case (')')
-            if (par_loc == 1) stop "I think you have an unmatched paren? maybe?"
-            if (n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
+            if (par_loc == 1) call abort("I think you have an unmatched paren? maybe?", re, re_loc)
+            if (n_atom == 0)  call abort("Empty parentheses", re, re_loc)
 
             n_atom = n_atom - 1
             do while (n_atom > 0)
@@ -576,17 +660,17 @@ contains
             n_atom = n_atom + 1
 
           case('*')
-            if (n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
+            if (n_atom == 0) call abort("Nothing to *", re, re_loc)
             pf(pf_loc) = star_op
             pf_loc = pf_loc + 1
 
           case('+')
-            if (n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
+            if (n_atom == 0) call abort("Nothing to +", re, re_loc)
             pf(pf_loc) = plus_op
             pf_loc = pf_loc + 1
 
           case('?')
-            if (n_atom == 0) stop "N_atom is 0. Apparently that's a bad thing..."
+            if (n_atom == 0) call abort("Nothing to ?", re, re_loc)
             pf(pf_loc) = quest_op
             pf_loc = pf_loc + 1
 
@@ -656,7 +740,7 @@ contains
             escaped_chr = n_space_ch
 
           case default
-            stop "Unrecognised escaped character"
+            call abort("Unrecognised escape character", re, re_loc)
         end select
 
         if (n_atom > 1) then
@@ -1401,7 +1485,7 @@ contains
     character(len=*), intent(in)  ::  str
 
     integer                 ::  postfix(pf_buff_size)
-    logical                 ::  debug = .false.
+    logical                 ::  debug = .true.
     type(nfa_type)          ::  nfa
     integer ::  istart
 
