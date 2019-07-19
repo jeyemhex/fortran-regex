@@ -248,8 +248,7 @@ contains
         case(n_space_ch)
           write(*,'(A7,A5)') "\S   "
         case default
-          write(*,'(A22,I4)') "Unrecognised character", pf(i)
-          stop
+          call abort("Unrecognised character" //  char(pf(i)))
       end select
     end do print_loop
 
@@ -328,7 +327,7 @@ contains
         case(n_space_ch)
           write(*,'(A7,A5)') "State: ", "\S   "
         case default
-          stop "Unrecognised character in print_state"
+          call abort("Unrecognised character in print_state")
       end select
       end if
 
@@ -368,7 +367,7 @@ contains
     new_list => null()
 
     allocate(new_list, stat=ierr)
-    if (ierr /= 0) stop "Unable to allocate new_list"
+    if (ierr /= 0) call abort("Unable to allocate new_list")
 
     new_list%s    => outp
     new_list%side =  side
@@ -519,7 +518,7 @@ contains
 
     if ((associated(l%s)) .and. (.not. local_ks)) then
       deallocate(l%s, stat=ierr)
-      if (ierr /= 0) stop "Unable to deallocate l%s"
+      if (ierr /= 0) call warn("Unable to deallocate l%s")
       if (present(n_states)) n_states = n_states - 1
     else
       l%s => null()
@@ -560,7 +559,7 @@ contains
         case(2)
           tmp_l%s%out2 => s
         case default
-          stop "Unexpected value of side"
+          call abort("Unexpected value of side")
       end select
       call point_list(tmp_l, tmp_l%next)
     end do
@@ -617,6 +616,7 @@ contains
             if (par_loc > size(paren)) call abort("Too many embedded brackets!", re, re_loc)
 
             if (n_atom > 1) call push_atom(cat_op)
+
             paren(par_loc)%n_alt  = n_alt
             paren(par_loc)%n_atom = n_atom
             par_loc = par_loc + 1
@@ -649,6 +649,7 @@ contains
             n_alt = paren(par_loc)%n_alt
             n_atom = paren(par_loc)%n_atom
             n_atom = n_atom + 1
+
 
           case('*')
             if (n_atom == 0) call abort("Nothing to *", re, re_loc)
@@ -716,7 +717,7 @@ contains
 
     end do
 
-    if (par_loc /= 1) stop "I think you've got unmatched parentheses"
+    if (par_loc /= 1) call abort("I think you've got unmatched parentheses", re, re_loc)
 
     n_atom = n_atom - 1
     do while (n_atom > 0)
@@ -741,7 +742,7 @@ contains
         case (or_op)
           n_alt = n_alt - 1
 
-        case (quest_op, plus_op, star_op)
+        case (quest_op, plus_op, star_op, open_par_op, close_par_op)
           ! do nothing
 
         case default
@@ -792,7 +793,7 @@ contains
 
     call deallocate_list(nfa%states, keep_states=.false., n_states = nfa%n_states)
     nfa%head => null()
-    if (nfa%n_states /= 0) stop "Some states are still allocated!"
+    if (nfa%n_states /= 0) call warn("Some states are still allocated!")
 
   end subroutine deallocate_nfa
 
@@ -830,16 +831,16 @@ contains
 
     nfrags = 0
     allocate(allocated_frags(pf_stack_size), stat=ierr)
-    if (ierr /= 0) stop "Unable to allocate frag stack"
+    if (ierr /= 0) call abort("Unable to allocate frag stack")
     allocate(stack(pf_stack_size),stat=ierr)
-    if (ierr /= 0) stop "Unable to allocate stack"
+    if (ierr /= 0) call abort("Unable to allocate stack")
 
     do i = 1, pf_stack_size
       stack(i)%elem => null()
       allocated_frags(i)%elem => null()
     end do
 
-    if (nfa%states%side /= 0) stop "Trying to build nfa with in-use states"
+    if (nfa%states%side /= 0) call abort("Trying to build nfa with in-use states")
 
     matchstate => new_state(match_st, null(), null())
     nullstate => new_state(null_st, null(), null())
@@ -901,26 +902,26 @@ contains
 
     e => pop()
 
-    if (s_loc /= 1) stop "Stack is not empty on exit"
+    if (s_loc /= 1) call warn("Stack is not empty on exit")
     call patch(e%out1, matchstate)
 
     nfa%head => e%start
 
-    if (matchstate%c /= match_st) stop "***** Matchstate has changed!"
-    if (nullstate%c /= null_st) stop "***** Nullstate has changed!"
+    if (matchstate%c /= match_st) call warn("***** Matchstate has changed!")
+    if (nullstate%c /= null_st) call warn("***** Nullstate has changed!")
 
     do i = 1, nfrags
       if (associated(allocated_frags(i)%elem)) then
         call deallocate_list(allocated_frags(i)%elem%out1, keep_states=.true.)
         if (associated(allocated_frags(i)%elem%start)) allocated_frags(i)%elem%start => null()
         deallocate(allocated_frags(i)%elem, stat=ierr)
-        if (ierr /= 0) stop "Unable to deallocate fragment"
+        if (ierr /= 0) call warn("Unable to deallocate fragment")
         allocated_frags(i)%elem => null()
       end if
     end do
 
     deallocate(stack, allocated_frags, stat=ierr)
-    if (ierr /= 0) stop "Unable to deallocate stacks"
+    if (ierr /= 0) call warn("Unable to deallocate stacks")
     e => null()
 
   contains
@@ -958,7 +959,7 @@ contains
 
       new_state => null()
       allocate(new_state, stat=ierr)
-      if (ierr /= 0) stop "Unable to allocate new_state"
+      if (ierr /= 0) call abort("Unable to allocate new_state")
       new_state%last_list = 0
       new_state%c = c
       new_state%out1 => out1
@@ -1045,7 +1046,7 @@ contains
     integer ::  istart, i, ierr
 
     allocate(l1(1:nfa%n_states), l2(1:nfa%n_states), stat=ierr)
-    if (ierr /= 0) stop "Error allocating l1,l2 in run_nfa_fast"
+    if (ierr /= 0) call abort("Error allocating l1,l2 in run_nfa_fast")
 
     start_loop: do istart = start, len(str)
       do i = 1, nfa%n_states
@@ -1201,8 +1202,7 @@ contains
             case( match_st )
 
             case default
-              print *, "Unrecognised state ", s%c
-              stop
+              call abort("Unrecognised state " // achar(s%c))
           end select
         else
           if (s%c == finish_ch) then
@@ -1419,8 +1419,7 @@ contains
           case(finish_ch)
 
           case default
-            print *, "Unrecognised state ", s%c
-            stop
+            call abort("Unrecognised state " // achar(s%c))
         end select
       else
         select case(s%c)
@@ -1469,7 +1468,7 @@ contains
 
     istart = 1
 
-    if (len_trim(re) < 1) stop "Regular expression cannot be of length 0"
+    if (len_trim(re) < 1) call abort("Regular expression cannot be of length 0")
     postfix = re_to_pf(trim(re))
     if(debug) call print_pf(postfix)
 
@@ -1515,7 +1514,7 @@ contains
 
     re_match_str = " "
 
-    if (len_trim(re) < 1) stop "Regular expression cannot be of length 0"
+    if (len_trim(re) < 1) call abort("Regular expression cannot be of length 0")
     postfix = re_to_pf(trim(re))
     nfa = pf_to_nfa(postfix)
 
@@ -1559,7 +1558,7 @@ contains
 
     istart = 1
 
-    if (len_trim(re) < 1) stop "Regular expression cannot be of length 0"
+    if (len_trim(re) < 1) call abort("Regular expression cannot be of length 0")
     postfix = re_to_pf(trim(re))
     nfa = pf_to_nfa(postfix)
 
@@ -1653,7 +1652,7 @@ contains
 
     re_replace = " "
 
-    if (len_trim(re) < 1) stop "Regular expression cannot be of length 0"
+    if (len_trim(re) < 1) call abort("Regular expression cannot be of length 0")
     postfix = re_to_pf(trim(re))
     nfa = pf_to_nfa(postfix)
 
