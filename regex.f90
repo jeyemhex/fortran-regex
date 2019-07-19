@@ -614,12 +614,9 @@ contains
             escaped = .true.
 
           case('(')
-            if (n_atom > 1) then
-              n_atom = n_atom - 1
-              pf(pf_loc) = cat_op
-              pf_loc = pf_loc + 1
-            end if
             if (par_loc > size(paren)) call abort("Too many embedded brackets!", re, re_loc)
+
+            if (n_atom > 1) call push_atom(cat_op)
             paren(par_loc)%n_alt  = n_alt
             paren(par_loc)%n_atom = n_atom
             par_loc = par_loc + 1
@@ -631,27 +628,21 @@ contains
 
             n_atom = n_atom - 1
             do while (n_atom > 0)
-              pf(pf_loc) = cat_op
-              pf_loc = pf_loc + 1
-              n_atom = n_atom - 1
+              call push_atom(cat_op)
             end do
             n_alt = n_alt + 1
 
           case (')')
-            if (par_loc == 1) call abort("I think you have an unmatched paren? maybe?", re, re_loc)
+            if (par_loc == 1) call abort("Unmatched ')'", re, re_loc)
             if (n_atom == 0)  call abort("Empty parentheses", re, re_loc)
 
             n_atom = n_atom - 1
             do while (n_atom > 0)
-              pf(pf_loc) = cat_op
-              pf_loc = pf_loc + 1
-              n_atom = n_atom - 1
+              call push_atom(cat_op)
             end do
 
             do while (n_alt > 0)
-              pf(pf_loc) = or_op
-              pf_loc = pf_loc + 1
-              n_alt = n_alt - 1
+              call push_atom(or_op)
             end do
 
             par_loc = par_loc - 1
@@ -661,60 +652,33 @@ contains
 
           case('*')
             if (n_atom == 0) call abort("Nothing to *", re, re_loc)
-            pf(pf_loc) = star_op
-            pf_loc = pf_loc + 1
+            call push_atom(star_op)
 
           case('+')
             if (n_atom == 0) call abort("Nothing to +", re, re_loc)
-            pf(pf_loc) = plus_op
-            pf_loc = pf_loc + 1
+            call push_atom(plus_op)
 
           case('?')
             if (n_atom == 0) call abort("Nothing to ?", re, re_loc)
-            pf(pf_loc) = quest_op
-            pf_loc = pf_loc + 1
+            call push_atom(quest_op)
 
           case ('.')
-            if (n_atom > 1) then
-              n_atom = n_atom - 1
-              pf(pf_loc:pf_loc) = cat_op
-              pf_loc = pf_loc + 1
-            end if
-            pf(pf_loc:pf_loc) = any_ch
-            pf_loc = pf_loc + 1
-            n_atom = n_atom + 1
+            if (n_atom > 1) call push_atom(cat_op)
+            call push_atom(any_ch)
 
           case ('^')
-            if (n_atom > 1) then
-              n_atom = n_atom - 1
-              pf(pf_loc:pf_loc) = cat_op
-              pf_loc = pf_loc + 1
-            end if
-            pf(pf_loc:pf_loc) = start_ch
-            pf_loc = pf_loc + 1
-            n_atom = n_atom + 1
+            if (n_atom > 1) call push_atom(cat_op)
+            call push_atom(start_ch)
 
           case ('$')
-            if (n_atom > 1) then
-              n_atom = n_atom - 1
-              pf(pf_loc:pf_loc) = cat_op
-              pf_loc = pf_loc + 1
-            end if
-            pf(pf_loc:pf_loc) = finish_ch
-            pf_loc = pf_loc + 1
-            n_atom = n_atom + 1
+            if (n_atom > 1) call push_atom(cat_op)
+            call push_atom(finish_ch)
 
           case(' ', achar(9))
 
           case default
-            if (n_atom > 1) then
-              n_atom = n_atom - 1
-              pf(pf_loc:pf_loc) = cat_op
-              pf_loc = pf_loc + 1
-            end if
-            pf(pf_loc:pf_loc) = iachar(re(re_loc:re_loc))
-            pf_loc = pf_loc + 1
-            n_atom = n_atom + 1
+            if (n_atom > 1) call push_atom(cat_op)
+            call push_atom(iachar(re(re_loc:re_loc)))
 
         end select
       else if (escaped) then
@@ -740,17 +704,11 @@ contains
             escaped_chr = n_space_ch
 
           case default
-            call abort("Unrecognised escape character", re, re_loc)
+            call abort("Unrecognised escape character \" // re(re_loc:re_loc), re, re_loc)
         end select
 
-        if (n_atom > 1) then
-          n_atom = n_atom - 1
-          pf(pf_loc:pf_loc) = cat_op
-          pf_loc = pf_loc + 1
-        end if
-        pf(pf_loc:pf_loc) = escaped_chr
-        pf_loc = pf_loc + 1
-        n_atom = n_atom + 1
+        if (n_atom > 1) call push_atom(cat_op)
+        call push_atom(escaped_chr)
         escaped = .false.
       end if
 
@@ -762,16 +720,36 @@ contains
 
     n_atom = n_atom - 1
     do while (n_atom > 0)
-      pf(pf_loc:pf_loc) = cat_op
-      pf_loc = pf_loc + 1
-      n_atom = n_atom - 1
+      call push_atom(cat_op)
     end do
 
     do while (n_alt > 0)
-      pf(pf_loc:pf_loc) = or_op
-      pf_loc = pf_loc + 1
-      n_alt = n_alt - 1
+      call push_atom(or_op)
     end do
+
+  contains 
+    subroutine push_atom(atom)
+      integer, intent(in) :: atom
+
+      pf(pf_loc) = atom
+      pf_loc = pf_loc + 1
+
+      select case(atom)
+        case (cat_op)
+          n_atom = n_atom - 1
+
+        case (or_op)
+          n_alt = n_alt - 1
+
+        case (quest_op, plus_op, star_op)
+          ! do nothing
+
+        case default
+        n_atom = n_atom + 1
+
+      end select
+
+    end subroutine push_atom
 
   end function re_to_pf
 
@@ -1485,7 +1463,7 @@ contains
     character(len=*), intent(in)  ::  str
 
     integer                 ::  postfix(pf_buff_size)
-    logical                 ::  debug = .true.
+    logical                 ::  debug = .false.
     type(nfa_type)          ::  nfa
     integer ::  istart
 
