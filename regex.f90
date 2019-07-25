@@ -98,7 +98,7 @@ module regex
     type(frag), pointer ::  elem
   end type frag_stack
 
-!EJH!   integer ::  submatch_pars(pf_stack_size)
+  integer ::  submatch_pars(2, pf_stack_size, max_paren_depth)
 
 contains
 
@@ -127,7 +127,7 @@ contains
      integer :: i
 
      write(error_unit, '(2a)') "ERROR: ", error
-     
+
      if (present(regex)) then
        write(error_unit, '(a)') "Problem occured in regular expression:"
        write(error_unit, '(a)') '  /' // regex //'/'
@@ -169,7 +169,7 @@ contains
      integer :: i
 
      write(error_unit, '(2a)') "WARNING: ", error
-     
+
      if (present(regex)) then
        write(error_unit, '(a)') "Problem occured in regular expression:"
        write(error_unit, '(a)') '  /' // regex //'/'
@@ -581,13 +581,16 @@ contains
     integer ::  pf(pf_buff_size)
     character(len=*),   intent(in) :: re
 
-    integer          :: n_alt, n_atom
-    integer          :: re_loc, pf_loc
-    type(paren_list) :: paren(max_paren_depth)
-    integer          :: par_loc
-    logical          :: escaped
-    integer          :: escaped_chr
+    integer          :: n_alt                   ! Number of alternatives
+    integer          :: n_atom                  ! Number of single units
+    integer          :: re_loc                  ! Location in the regex string
+    integer          :: pf_loc                  ! Location in the postfix list
+    type(paren_list) :: paren(max_paren_depth)  ! List of opened parens at a given point
+    integer          :: par_loc                 ! Current position in the paren list
+    logical          :: escaped                 ! Whether or not the current character is escaped
+    integer          :: escaped_chr             ! The charcter which has been escaped
 
+    ! Initialise key variables
     par_loc = 1
     re_loc  = 1
     pf_loc  = 1
@@ -597,87 +600,104 @@ contains
 
     pf = null_st
 
+    ! If the regex won't fit in the pf list, abort
     if (len_trim(re) > pf_buff_size/2) call abort("Regex too long", trim(re))
+
+    ! Loop over characters in the regex
     do while (re_loc <= len_trim(re))
       if (.not. escaped) then
+
+        ! What is the current character?
         select case(re(re_loc:re_loc))
-          case('\')
+
+          case('\') ! The next character will be escaped
             escaped = .true.
 
-          case('(')
+          case('(') ! We've found an open bracket
             if (par_loc > size(paren)) call abort("Too many embedded brackets!", re, re_loc)
 
+            ! Concatinate this set of brackets with anything previous and add it to the postfix list
             if (n_atom > 1) call push_atom(cat_op)
+            ! Push an open_paren to track brackets in the automaton
             call push_atom(open_par_ch)
 
+            ! Store the state outside of the brackes and reset the counters
             paren(par_loc)%n_alt  = n_alt
             paren(par_loc)%n_atom = n_atom
             par_loc = par_loc + 1
             n_alt   = 0
             n_atom  = 0
 
-          case('|')
-            if (n_atom == 0) call abort("Nothing to |", re, re_loc)
+          case('|') ! We've found an OR operation
+            if (n_atom == 0) call abort("OR has no left hand side", re, re_loc)
 
+            ! Add all the current atoms to the postfix list and start a new alternate list
             n_atom = n_atom - 1
             do while (n_atom > 0)
               call push_atom(cat_op)
             end do
             n_alt = n_alt + 1
 
-          case (')')
+          case (')') ! We've found a close bracket
             if (par_loc == 1) call abort("Unmatched ')'", re, re_loc)
             if (n_atom == 0)  call abort("Empty parentheses", re, re_loc)
 
+            ! Add all the current atoms to the postfix list
             n_atom = n_atom - 1
             do while (n_atom > 0)
               call push_atom(cat_op)
             end do
 
+            ! Close off any alternatives that exist in the bracktes
             do while (n_alt > 0)
               call push_atom(or_op)
             end do
 
+            ! Revert state to that of the outer brackets
             par_loc = par_loc - 1
             n_alt = paren(par_loc)%n_alt
             n_atom = paren(par_loc)%n_atom
             n_atom = n_atom + 1
 
+            ! Push a close_paren to track brackets in the automaton
             call push_atom(close_par_ch)
 
-          case('*')
+          case('*') ! We've found a STAR operation
             if (n_atom == 0) call abort("Nothing to *", re, re_loc)
             call push_atom(star_op)
 
-          case('+')
+          case('+') ! We've found a PLUS operation
             if (n_atom == 0) call abort("Nothing to +", re, re_loc)
             call push_atom(plus_op)
 
-          case('?')
+          case('?') ! We've found a QUESTION operation
             if (n_atom == 0) call abort("Nothing to ?", re, re_loc)
             call push_atom(quest_op)
 
-          case ('.')
+          case ('.') ! We've found and ANY character
             if (n_atom > 1) call push_atom(cat_op)
             call push_atom(any_ch)
 
-          case ('^')
+          case ('^') ! We've found a line-start anchor
             if (n_atom > 1) call push_atom(cat_op)
             call push_atom(start_ch)
 
-          case ('$')
+          case ('$') ! We've foudn a line-end anchor
             if (n_atom > 1) call push_atom(cat_op)
             call push_atom(finish_ch)
 
-          case(' ', achar(9))
+          case(' ', achar(9)) ! We've found whitespace in the regex
+            ! Do nothing, ignore whitespace in the regex
 
-          case default
+          case default ! We've found a regular charcter
+            ! If there are already atoms, add a concat. operation and then add this character
             if (n_atom > 1) call push_atom(cat_op)
             call push_atom(iachar(re(re_loc:re_loc)))
 
         end select
       else if (escaped) then
 
+        ! Deal with escaped characters
         select case(re(re_loc:re_loc))
           case('(','|',')','*','+','?','\','.','^','$',' ',achar(9))
             escaped_chr = iachar(re(re_loc:re_loc))
@@ -702,27 +722,32 @@ contains
             call abort("Unrecognised escape character \" // re(re_loc:re_loc), re, re_loc)
         end select
 
+        ! If there are already atoms, add a concat. operation and then add this character
         if (n_atom > 1) call push_atom(cat_op)
         call push_atom(escaped_chr)
         escaped = .false.
       end if
 
+      ! Go to the next character in the regex
       re_loc = re_loc + 1
-
     end do
 
     if (par_loc /= 1) call abort("I think you've got unmatched parentheses", re, re_loc)
 
+    ! Add any remaining atoms to the postfix list
     n_atom = n_atom - 1
     do while (n_atom > 0)
       call push_atom(cat_op)
     end do
 
+    ! Add any remaining alternatives to the postfix list
     do while (n_alt > 0)
       call push_atom(or_op)
     end do
 
-  contains 
+  contains
+
+    ! A routine to push a given atom to the end of the postfix list
     subroutine push_atom(atom)
       integer, intent(in) :: atom
       integer :: tmp_pf_loc
@@ -737,6 +762,8 @@ contains
         case (or_op)
           n_alt = n_alt - 1
 
+        ! If this character operates on a previous atom, we need to make sure
+        ! that it applied to that atom and not any close_par.s instead
         case (quest_op, plus_op, star_op)
           tmp_pf_loc = pf_loc-1
           do while (pf(tmp_pf_loc-1) == close_par_ch)
@@ -819,16 +846,19 @@ contains
     integer,  intent(in)  ::  postfix(pf_buff_size)
 
     integer ::  pf_loc, s_loc
-    type(frag_stack), allocatable ::  stack(:), allocated_frags(:)
-    type(frag),     pointer ::  stack_p, e1, e2, e
-    type(state),    pointer ::  s
-    type(state),    pointer ::  matchstate
-    type(state),    pointer ::  nullstate
+    type(frag_stack), allocatable ::  stack(:)            ! Stack of unassigned NFA fragments
+    type(frag_stack), allocatable ::  allocated_frags(:)  ! Stack of all allocated NFA fragments
+    type(frag),     pointer ::  stack_p                   ! Pointer to the top of the stack
+    type(frag),     pointer ::  e1, e2, e                 ! Pointers to fragments being operated on 
+    type(state),    pointer ::  s                         ! Pointer to a state
+    type(state),    pointer ::  matchstate                ! The "Successful match" state
+    type(state),    pointer ::  nullstate                 ! The "Nothing to be pointed to" state
 
     integer ::  nfrags, i, ierr
 
     call allocate_nfa(nfa)
 
+    ! Allocate and initalise the appropriate datastructures
     nfrags = 0
     allocate(allocated_frags(pf_stack_size), stat=ierr)
     if (ierr /= 0) call abort("Unable to allocate frag stack")
@@ -842,6 +872,7 @@ contains
 
     if (nfa%states%side /= 0) call abort("Trying to build nfa with in-use states")
 
+    ! Allocate the Match and Null states for this NFA
     matchstate => new_state(match_st, null(), null())
     nullstate => new_state(null_st, null(), null())
 
@@ -849,67 +880,102 @@ contains
     pf_loc  = 1
     s_loc   = 1
 
+    ! While there are still states in the postfix list:
     do while (postfix(pf_loc) /= null_st)
       s => null()
       select case( postfix(pf_loc) )
 
-      case(cat_op)
-          e2 => pop()
-          e1 => pop()
-          call patch(e1%out1, e2%start)
-          call push(new_frag(e1%start, e2%out1))
-          e1 => null()
-          e2 => null()
+      case(cat_op) ! A concatanation operation
+        ! Pop the top two fragments off the stack (e1 and e2)
+        e2 => pop()
+        e1 => pop()
 
-        case(or_op)
-          e2 => pop()
-          e1 => pop()
-          s => new_state( split_st, e1%start, e2%start )
-          call append(e1%out1, e2%out1)
-          call push( new_frag(s, e1%out1) )
-          e1 => null()
-          e2 => null()
+        ! Patch the ends of e1 to the start of e2
+        call patch(e1%out1, e2%start)
 
-        case(quest_op)
-          e => pop()
-          s => new_state( split_st, e%start, nullstate )
-          call append(e%out1, new_list(s,2))
-          call push( new_frag(s, e%out1) )
-          e => null()
+        ! Push the resultant fragment, starting at e1, back onto the stack
+        call push(new_frag(e1%start, e2%out1))
+        e1 => null()
+        e2 => null()
 
-        case(star_op)
-          e => pop()
-          s => new_state( split_st, e%start, nullstate )
-          call patch(e%out1, s)
-          call push( new_frag(s, new_list(s, 2))  )
-          e => null()
+      case(or_op) ! A '|' operation
+        ! Pop the top two fragments off the stack (e1 and e2)
+        e2 => pop()
+        e1 => pop()
 
-        case(plus_op)
-          e => pop()
-          s => new_state( split_st, e%start, nullstate )
-          call patch(e%out1, s)
-          call push( new_frag(e%start, new_list(s, 2))  )
-          e => null()
+        ! Create a split state pointing to the start of e1 and e2
+        s => new_state( split_st, e1%start, e2%start )
 
-        case default
-          s => new_state( postfix(pf_loc), nullstate, nullstate )
-          call push( new_frag(s, new_list(s, 1)) )
-          e => null()
+        ! Append the outputs of e2 to the output list of e1
+        call append(e1%out1, e2%out1)
+
+        ! Push a new fragment, starting at s, back onto the stack
+        call push( new_frag(s, e1%out1) )
+        e1 => null()
+        e2 => null()
+
+      case(quest_op) ! A '?' operation
+        ! Pop the top fragment off the stack (e) and create a split state (s)
+        e => pop()
+        s => new_state( split_st, e%start, nullstate )
+
+        ! Create a new state list contining s and append the outputs to the output list of e
+        call append(e%out1, new_list(s,2))
+
+        ! Push a new fragment, starting at s, onto the stack
+        call push( new_frag(s, e%out1) )
+        e => null()
+
+      case(star_op) ! A '*' operation
+        ! Pop the top fragment off the stack (e) and create a split state (s)
+        e => pop()
+        s => new_state( split_st, e%start, nullstate )
+
+        ! Patch the ends of s to the start of e
+        call patch(e%out1, s)
+
+        ! Push a new fragment, starting at s, onto the stack
+        call push( new_frag(s, new_list(s, 2))  )
+        e => null()
+
+      case(plus_op) ! A '+' operation
+        ! Pop the top fragment off the stack (e) and create a split state (s)
+        e => pop()
+        s => new_state( split_st, e%start, nullstate )
+
+        ! Patch the ends of s to the start of e
+        call patch(e%out1, s)
+
+        ! Push a new fragment, starting at e, onto the stack
+        call push( new_frag(e%start, new_list(s, 2))  )
+        e => null()
+
+      case default ! Everything else
+        ! Create a new state for this particular character
+        s => new_state( postfix(pf_loc), nullstate, nullstate )
+
+        ! Push a new fragment, starting at e, onto the stack
+        call push( new_frag(s, new_list(s, 1)) )
+        e => null()
 
       end select
+
+      ! Advance to the next postfix token
       pf_loc = pf_loc + 1
     end do
 
+    ! Pop off (hopefully) the final element on the stack
     e => pop()
-
     if (s_loc /= 1) call warn("Stack is not empty on exit")
     call patch(e%out1, matchstate)
 
     nfa%head => e%start
 
+    ! If we've messed up, matchstate or nullstate might have changed; check for this
     if (matchstate%c /= match_st) call warn("***** Matchstate has changed!")
     if (nullstate%c /= null_st) call warn("***** Nullstate has changed!")
 
+    ! Deallocate the memory we used along the way
     do i = 1, nfrags
       if (associated(allocated_frags(i)%elem)) then
         call deallocate_list(allocated_frags(i)%elem%out1, keep_states=.true.)
@@ -1048,7 +1114,11 @@ contains
     allocate(l1(1:nfa%n_states), l2(1:nfa%n_states), stat=ierr)
     if (ierr /= 0) call abort("Error allocating l1,l2 in run_nfa_fast")
 
+    ! The match might not start on the first character of the string,
+    !   test the NFA starting on each character until we find a match
     start_loop: do istart = start, len(str)
+
+      ! Initialise the variables for a new run
       do i = 1, nfa%n_states
         l1(i)%s => null()
         l2(i)%s => null()
@@ -1064,30 +1134,45 @@ contains
       loc_start = istart
 
       res = .false.
+
+      if (present(finish)) finish = -1
+
+      ! If the first character matches, we're done!
       if ( is_match(c_list, n_cl) ) then
         res = .true.
         if (present(finish)) finish = min(ch_loc, len(str))
       end if
 
-      if (present(finish)) finish = -1
+      ! Keep trying to match until we hit the end of the string
       do while (ch_loc <= len(str)+1)
         no_advance  = .false.
+
+        ! Step each possible path through the NFA
         call step()
+
+        ! Swap the current and next lists wround
         t      => c_list
         c_list => n_list
         n_list => t
         n_t  = n_cl
         n_cl = n_nl
         n_nl = n_t
+
+        ! If any of the new current list match, make a note of that
         if ( is_match(c_list, n_cl) ) then
           res = .true.
           if (present(finish)) finish = min(ch_loc, len(str))
         end if
+
+        ! Possibly advance to the next character in the string (not if we're matching, e.g. '^')
         if (.not. no_advance) ch_loc = ch_loc + 1
       end do
+
+      ! Return if we've found a match
       if (res) exit start_loop
     end do start_loop
 
+    ! If we matched, store the start of the match
     if (res) start = loc_start
     deallocate(l1, l2)
 
@@ -1103,7 +1188,7 @@ contains
       type(list),   target,   intent(inout)  ::  l(:)
       integer,                intent(inout)  ::  n_l
       type(state),  pointer,  intent(inout)  ::  s
-      
+
 
       n_l = 1
       list_id = list_id + 1
