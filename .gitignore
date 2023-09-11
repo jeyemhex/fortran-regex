@@ -2,4 +2,4 @@
 *.mod
 *.o
 ./re_test
-./re_check
+./re_example
