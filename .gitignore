@@ -1,5 +1,5 @@
 .*.sw*
 *.mod
 *.o
-./re_test
-./re_example
+re_test
+re_example
