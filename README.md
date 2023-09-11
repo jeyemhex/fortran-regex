@@ -90,7 +90,7 @@ For more examples of the syntax, see `re_test.f90`.
 
 ### NOT YET IMPLEMENTED
 This is, (and will continue to be for a while I'm afraid), a work in progress.
-As a result, I have not finished implementing all the features I would like.
+As a result, I have not finished implementing all the features I would like. These are currently speculative, as the syntax hasn't been properly thought through.
 Some features I would like to implement before I decide this is complete are:
 
   * Arbitrary character groups, e.g. `'[aeiouAEIOU]'` to match only vowels
@@ -105,6 +105,10 @@ Some features I would like to implement before I decide this is complete are:
       * `match([1])` would return `bc`
       * `match([2])` would return `de`
       * `match([2,1])` would return `d`
+
+   * Defined captures would be nice, e.g. `<integer: \d+>` would define a reusable rule that would match integers with `<integer>`. This would require making `<`, `>` and `:` special characters too.
+
+   * Named captures too... e.g. `(name: \w+) = (value: \d+)` could be referenced within `match("name", [])` and `match("value", [])` respectively, or something. 
 
 
 ## Prerequisites

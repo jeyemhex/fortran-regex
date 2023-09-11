@@ -143,6 +143,19 @@ program re_test
   call test('\s (\+|-)? \d+ (\.\d*)? ((e|E) (\+|-)? \d+)? $' , "the number is 1e6.0"   , .false.           )
   call test('\s (\+|-)? \d+ (\.\d*)? ((e|E) (\+|-)? \d+)? $' , "the number is -e6"     , .false.           )
 
+!-[PROPOSED FEATURE TESTS]--------------------------------------------------------------------------
+
+! Proposed tests for capture groups
+!  call test('[aeiou]', 'find a vowel', .true., 'i')
+
+! Proposed tests for defined captures
+!  call test('<integer: \d+> <integer>', 'there were 52 cats', .true. '52')
+!  call test('<sign:     \+|-              > &
+!                 &<decimal:  \d (\.\d*)?       > &
+!                 &<exponent: (e|E) <sign>? \d+ > &
+!                 &<sign>? <decimal> <exponent>?', 'the numebr is -5.2e-6', .true. '-5.2e-6')
+
+
   print *, " "
   select case (ntests)
     case(0:9)
