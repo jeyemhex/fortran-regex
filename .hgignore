@@ -1,0 +1,5 @@
+^.*.o
+^.*.mod
+^re_test$
+^re_example$
+^\..+
