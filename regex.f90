@@ -1422,78 +1422,80 @@ contains
     !   is re-called.                                                              !
     !------------------------------------------------------------------------------!
       integer ::  next_start
+      integer :: local_istart
 
+      local_istart = istart
       next_start = -1
-      if (istart <= len(str)) then
+      if (local_istart <= len(str)) then
         select case(s%c)
           case( match_st )
             res = .true.
-            if (present(finish)) finish = istart-1
+            if (present(finish)) finish = local_istart-1
 
           case( split_st )
-            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
-            if (.not. res) res = run_nfa_full(nfa, str, istart, fin, s_in = s%out2)
+            res = run_nfa_full(nfa, str, local_istart, fin, s_in = s%out1)
+            if (.not. res) res = run_nfa_full(nfa, str, local_istart, fin, s_in = s%out2)
 
           case(0:255)
-            if ( s%c == iachar(str(istart:istart)) ) then
-              next_start = istart + 1
+            if ( s%c == iachar(str(local_istart:local_istart)) ) then
+              next_start = local_istart + 1
               res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end if
 
           case(any_ch)
-            next_start = istart + 1
+            next_start = local_istart + 1
             res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
           case(alpha_ch)
-            select case( str(istart:istart) )
+            select case( str(local_istart:local_istart) )
               case("a":"z","A":"Z")
-                next_start = istart + 1
+                next_start = local_istart + 1
                 res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
           case(numeric_ch)
-            select case( str(istart:istart) )
+            select case( str(local_istart:local_istart) )
               case("0":"9")
-                next_start = istart + 1
+                next_start = local_istart + 1
                 res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
           case(word_ch)
-            select case( str(istart:istart) )
+            select case( str(local_istart:local_istart) )
               case("a":"z","A":"Z","0":"9","_")
-                next_start = istart + 1
+                next_start = local_istart + 1
                 res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
           case(space_ch)
-            select case( str(istart:istart) )
+            select case( str(local_istart:local_istart) )
               case(" ", achar(9), achar(10))
-                next_start = istart + 1
+                next_start = local_istart + 1
                 res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
 
           case(n_alpha_ch)
-            select case( str(istart:istart) )
+            select case( str(local_istart:local_istart) )
               case("a":"z","A":"Z")
               case default
-                next_start = istart + 1
+                next_start = local_istart + 1
                 res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
           case(n_numeric_ch)
-            select case( str(istart:istart) )
+            select case( str(local_istart:local_istart) )
               case("0":"9")
               case default
-                next_start = istart + 1
+                next_start = local_istart + 1
                 res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
           case(n_word_ch)
-            select case( str(istart:istart) )
+            select case( str(local_istart:local_istart) )
               case("a":"z","A":"Z","0:9","_")
               case default
-                next_start = istart + 1
+                next_start = local_istart + 1
                 res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
           case(n_space_ch)
-            select case( str(istart:istart) )
+            select case( str(local_istart:local_istart) )
               case(" ", achar(9), achar(10))
               case default
-                next_start = istart + 1
+                next_start = local_istart + 1
                 res = run_nfa_full(nfa, str, next_start, fin, s_in = s%out1)
             end select
 
@@ -1501,10 +1503,10 @@ contains
             if (start == 1) res = run_nfa_full(nfa, str, start, fin, s_in = s%out1)
 
           case(open_par_ch)
-            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
+            res = run_nfa_full(nfa, str, local_istart, fin, s_in = s%out1)
 
           case(close_par_ch)
-            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
+            res = run_nfa_full(nfa, str, local_istart, fin, s_in = s%out1)
 
           case(finish_ch)
 
@@ -1514,19 +1516,19 @@ contains
       else
         select case(s%c)
           case(open_par_ch)
-            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
+            res = run_nfa_full(nfa, str, local_istart, fin, s_in = s%out1)
 
           case(close_par_ch)
-            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
+            res = run_nfa_full(nfa, str, local_istart, fin, s_in = s%out1)
 
           case( split_st )
-            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
-            if (.not. res) res = run_nfa_full(nfa, str, istart, fin, s_in = s%out2)
+            res = run_nfa_full(nfa, str, local_istart, fin, s_in = s%out1)
+            if (.not. res) res = run_nfa_full(nfa, str, local_istart, fin, s_in = s%out2)
           case( match_st )
             res = .true.
             if (present(finish)) finish = len(str)
           case( finish_ch )
-            res = run_nfa_full(nfa, str, istart, fin, s_in = s%out1)
+            res = run_nfa_full(nfa, str, local_istart, fin, s_in = s%out1)
         end select
       end if
 
