@@ -19,7 +19,7 @@ re_test.o: regex.o
 %.o: %.f90
 	$(FC) $(FCFLAGS) -c $<
 
-test: re_test
+check: re_test
 	./re_test
 
 clean:
