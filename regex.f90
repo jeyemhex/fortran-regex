@@ -587,8 +587,8 @@ contains
     integer          :: pf_loc                  ! Location in the postfix list
     type(paren_list) :: paren(max_paren_depth)  ! List of opened parens at a given point
     integer          :: par_loc                 ! Current position in the paren list
-    logical          :: escaped                 ! Whether or not the current character is escaped
     integer          :: escaped_chr             ! The charcter which has been escaped
+    character(len=8) :: mode
 
     ! Initialise key variables
     par_loc = 1
@@ -596,7 +596,7 @@ contains
     pf_loc  = 1
     n_alt   = 0
     n_atom  = 0
-    escaped = .false.
+    mode = "normal"
 
     pf = null_st
 
@@ -605,13 +605,13 @@ contains
 
     ! Loop over characters in the regex
     do while (re_loc <= len_trim(re))
-      if (.not. escaped) then
+      if (mode /= "escaped") then
 
         ! What is the current character?
         select case(re(re_loc:re_loc))
 
           case('\') ! The next character will be escaped
-            escaped = .true.
+            mode = "escaped"
 
           case('(') ! We've found an open bracket
             if (par_loc > size(paren)) call abort("Too many embedded brackets!", re, re_loc)
@@ -695,7 +695,7 @@ contains
             call push_atom(iachar(re(re_loc:re_loc)))
 
         end select
-      else if (escaped) then
+      else if (mode == "escaped") then
 
         ! Deal with escaped characters
         select case(re(re_loc:re_loc))
@@ -725,7 +725,7 @@ contains
         ! If there are already atoms, add a concat. operation and then add this character
         if (n_atom > 1) call push_atom(cat_op)
         call push_atom(escaped_chr)
-        escaped = .false.
+        mode = "normal"
       end if
 
       ! Go to the next character in the regex
