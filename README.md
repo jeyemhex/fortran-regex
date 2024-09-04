@@ -86,6 +86,9 @@ This can be done, as mentioned above, by escaping the space `"a\ b"`, or using
 readability of the resulting regular expressions, and was borrowed from Perl's
 `/<regex>/x` functionality.
 
+ * `'[abc]'` matches `a`, `b` or `c`. This works for any literal character other
+     than `'['` and `']'` themselves.
+
 For more examples of the syntax, see `re_test.f90`.
 
 ### NOT YET IMPLEMENTED
@@ -93,7 +96,6 @@ This is, (and will continue to be for a while I'm afraid), a work in progress.
 As a result, I have not finished implementing all the features I would like. These are currently speculative, as the syntax hasn't been properly thought through.
 Some features I would like to implement before I decide this is complete are:
 
-  * Arbitrary character groups, e.g. `'[aeiouAEIOU]'` to match only vowels
   * Case insensitive searching
   * A negation operation. I'm tempted to use `'c!'` as a "matches zero `c`'s"
     operation, but I haven't really thought too much about the consequences of
