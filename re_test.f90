@@ -10,7 +10,7 @@ program re_test
   ntests = 0
   failed = ""
 
-! Single character matching
+  ! Single character matching
   call test("a"    , "a"   , .true. , "a"   )
   call test("a"    , "b"   , .false.        )
   call test("a"    , "abc" , .true. , "a"   )
@@ -143,10 +143,22 @@ program re_test
   call test('\s (\+|-)? \d+ (\.\d*)? ((e|E) (\+|-)? \d+)? $' , "the number is 1e6.0"   , .false.           )
   call test('\s (\+|-)? \d+ (\.\d*)? ((e|E) (\+|-)? \d+)? $' , "the number is -e6"     , .false.           )
 
+  ! Tests for capture groups
+  call test('[aeiou]',                          'find a vowel',       .true., 'i'               )
+  call test('a[01]',                            'a1',                 .true., 'a1'              )
+  call test('a[01]',                            'a2',                 .false.                   )
+  call test('a[01]b',                           'a0b',                .true., 'a0b'             )
+  call test('a[01]b',                           'a2b',                .false.                   )
+  call test('a[012345]b',                       'a5b',                .true., 'a5b'             )
+  call test('a[012345]b',                       'ab',                 .false.                   )
+  call test('test\ [01]\d',                     'test 12',            .true., 'test 12'         )
+  call test('[({]5[)}]',                        'array(5)',           .true., '(5)'             )
+  call test('[({]5[)}]',                        'array{5}',           .true., '{5}'             )
+  call test('[({]5[)}]',                        'array[5]',           .false.                   )
+  call test('(br[ea]d) \s and \s  (butt[oe]r)', 'my brad and buttor', .true., 'brad and buttor' )
+
 !-[PROPOSED FEATURE TESTS]--------------------------------------------------------------------------
 
-! Proposed tests for capture groups
-!  call test('[aeiou]', 'find a vowel', .true., 'i')
 
 ! Proposed tests for defined captures
 !  call test('<integer: \d+> <integer>', 'there were 52 cats', .true. '52')

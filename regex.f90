@@ -126,6 +126,7 @@ contains
 
      integer :: i
 
+     write(error_unit, *) ""
      write(error_unit, '(2a)') "ERROR: ", error
 
      if (present(regex)) then
@@ -605,7 +606,7 @@ contains
 
     ! Loop over characters in the regex
     do while (re_loc <= len_trim(re))
-      if (mode /= "escaped") then
+      if (mode == "normal") then
 
         ! What is the current character?
         select case(re(re_loc:re_loc))
@@ -614,19 +615,7 @@ contains
             mode = "escaped"
 
           case('(') ! We've found an open bracket
-            if (par_loc > size(paren)) call abort("Too many embedded brackets!", re, re_loc)
-
-            ! Concatinate this set of brackets with anything previous and add it to the postfix list
-            if (n_atom > 1) call push_atom(cat_op)
-            ! Push an open_paren to track brackets in the automaton
-            call push_atom(open_par_ch)
-
-            ! Store the state outside of the brackes and reset the counters
-            paren(par_loc)%n_alt  = n_alt
-            paren(par_loc)%n_atom = n_atom
-            par_loc = par_loc + 1
-            n_alt   = 0
-            n_atom  = 0
+            call enter_paren(track=.true.)
 
           case('|') ! We've found an OR operation
             if (n_atom == 0) call abort("OR has no left hand side", re, re_loc)
@@ -642,25 +631,7 @@ contains
             if (par_loc == 1) call abort("Unmatched ')'", re, re_loc)
             if (n_atom == 0)  call abort("Empty parentheses", re, re_loc)
 
-            ! Add all the current atoms to the postfix list
-            n_atom = n_atom - 1
-            do while (n_atom > 0)
-              call push_atom(cat_op)
-            end do
-
-            ! Close off any alternatives that exist in the bracktes
-            do while (n_alt > 0)
-              call push_atom(or_op)
-            end do
-
-            ! Revert state to that of the outer brackets
-            par_loc = par_loc - 1
-            n_alt = paren(par_loc)%n_alt
-            n_atom = paren(par_loc)%n_atom
-            n_atom = n_atom + 1
-
-            ! Push a close_paren to track brackets in the automaton
-            call push_atom(close_par_ch)
+            call exit_paren(track=.true.)
 
           case('*') ! We've found a STAR operation
             if (n_atom == 0) call abort("Nothing to *", re, re_loc)
@@ -689,6 +660,10 @@ contains
           case(' ', achar(9)) ! We've found whitespace in the regex
             ! Do nothing, ignore whitespace in the regex
 
+          case ('[')
+            mode = "group"
+            call enter_paren(track=.false.)
+
           case default ! We've found a regular charcter
             ! If there are already atoms, add a concat. operation and then add this character
             if (n_atom > 1) call push_atom(cat_op)
@@ -699,7 +674,7 @@ contains
 
         ! Deal with escaped characters
         select case(re(re_loc:re_loc))
-          case('(','|',')','*','+','?','\','.','^','$',' ',achar(9))
+          case('(','|',')','[',']','*','+','?','\','.','^','$',' ',achar(9))
             escaped_chr = iachar(re(re_loc:re_loc))
           case('a')
             escaped_chr = alpha_ch
@@ -726,6 +701,19 @@ contains
         if (n_atom > 1) call push_atom(cat_op)
         call push_atom(escaped_chr)
         mode = "normal"
+
+      ! Handle character groups (e.g. "[aeiou]")
+      else if (mode == "group") then
+        if (re(re_loc:re_loc) /= ']') then
+          call push_atom(iachar(re(re_loc:re_loc)))
+          n_alt=n_alt+1
+          n_atom = n_atom - 1
+
+        else
+          n_alt=n_alt-1
+          call exit_paren(track = .false.)
+          mode = "normal"
+        end if
       end if
 
       ! Go to the next character in the regex
@@ -778,6 +766,50 @@ contains
       end select
 
     end subroutine push_atom
+
+    subroutine enter_paren(track)
+      logical :: track
+
+      if (par_loc > size(paren)) call abort("Too many embedded brackets!", re, re_loc)
+
+      ! Concatinate this set of brackets with anything previous and add it to the postfix list
+      if (n_atom > 1) call push_atom(cat_op)
+      ! Push an open_paren to track brackets in the automaton
+      if (track) call push_atom(open_par_ch)
+
+      ! Store the state outside of the brackes and reset the counters
+      paren(par_loc)%n_alt  = n_alt
+      paren(par_loc)%n_atom = n_atom
+      par_loc = par_loc + 1
+      n_alt   = 0
+      n_atom  = 0
+
+    end subroutine enter_paren
+
+    subroutine exit_paren(track)
+      logical :: track
+
+      ! Add all the current atoms to the postfix list
+      n_atom = n_atom - 1
+      do while (n_atom > 0)
+        call push_atom(cat_op)
+      end do
+
+      ! Close off any alternatives that exist in the bracktes
+      do while (n_alt > 0)
+        call push_atom(or_op)
+      end do
+
+      ! Revert state to that of the outer brackets
+      par_loc = par_loc - 1
+      n_alt = paren(par_loc)%n_alt
+      n_atom = paren(par_loc)%n_atom
+      n_atom = n_atom + 1
+
+      ! Push a close_paren to track brackets in the automaton
+      if (track) call push_atom(close_par_ch)
+
+    end subroutine exit_paren
 
   end function re_to_pf
 
