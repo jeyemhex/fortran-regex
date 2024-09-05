@@ -1,5 +1,5 @@
 # REGEX
-## A Fortran 2003 implementation of regular expressions
+## A pure Fortran implementation of regular expressions
 
 ## Introduction
 In ~~a moment of madness~~ an attempt to better understand the tools I use on
@@ -116,7 +116,10 @@ Some features I would like to implement before I decide this is complete are:
 ## Prerequisites
 regex.f90 currently requires:
 
-  * Fortran 2003 compiler
+  * a (relatively modern) Fortran compiler
+
+The code currently uses `error stop` from F2018 at one place in the code to provide backtraces on errors.
+Other than that it's entirely F2003 or earlier, so if that's a requirement then you can just replace that with a regular `stop 1` or something.
 
 ## Acknowledgements
 
@@ -126,7 +129,7 @@ to Russ for his excellent webpage!
 
 
 ## Version
-v0.3.1: 2017-12-04
+v0.4.0 2024-09-05
 
 ## Author
 Edward Higgins
