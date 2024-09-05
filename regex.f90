@@ -580,6 +580,7 @@ contains
     integer ::  pf(pf_buff_size)
     character(len=*),   intent(in) :: re
 
+    character        :: c
     integer          :: n_alt                   ! Number of alternatives
     integer          :: n_atom                  ! Number of single units
     integer          :: re_loc                  ! Location in the regex string
@@ -589,6 +590,7 @@ contains
     integer          :: escaped_chr             ! The charcter which has been escaped
     character(len=16):: mode
     integer          :: comment_bracket_count
+    character(len=64):: submatch_name
 
     ! Initialise key variables
     par_loc = 1
@@ -605,10 +607,11 @@ contains
 
     ! Loop over characters in the regex
     do while (re_loc <= len_trim(re))
+      c = re(re_loc:re_loc)
       if (mode == "normal") then
 
         ! What is the current character?
-        select case(re(re_loc:re_loc))
+        select case(c)
 
           case('\') ! The next character will be escaped
             mode = "escaped"
@@ -664,22 +667,26 @@ contains
             mode = "comment"
             ! Do nothing, ignore whitespace in the regex
 
-          case ('[')
+          case ('[') ! We're entering a character group
             mode = "group"
             call enter_paren(track=.false.)
+
+          case ('<')
+            mode = "submatch-name"
+            submatch_name = ""
 
           case default ! We've found a regular charcter
             ! If there are already atoms, add a concat. operation and then add this character
             if (n_atom > 1) call push_atom(cat_op)
-            call push_atom(iachar(re(re_loc:re_loc)))
+            call push_atom(iachar(c))
 
         end select
       else if (mode == "escaped") then
 
         ! Deal with escaped characters
-        select case(re(re_loc:re_loc))
+        select case(c)
           case('(','|',')','[',']','*','+','?','\','.','^','$','!',' ',achar(9),achar(10))
-            escaped_chr = iachar(re(re_loc:re_loc))
+            escaped_chr = iachar(c)
           case('a')
             escaped_chr = alpha_ch
           case('d')
@@ -698,7 +705,7 @@ contains
             escaped_chr = n_space_ch
 
           case default
-            call throw_error("Unrecognised escape character \" // re(re_loc:re_loc), re, re_loc)
+            call throw_error("Unrecognised escape character \" // c, re, re_loc)
         end select
 
         ! If there are already atoms, add a concat. operation and then add this character
@@ -708,8 +715,8 @@ contains
 
       ! Handle character groups (e.g. "[aeiou]")
       else if (mode == "group") then
-        if (re(re_loc:re_loc) /= ']') then
-          call push_atom(iachar(re(re_loc:re_loc)))
+        if (c /= ']') then
+          call push_atom(iachar(c))
           n_alt=n_alt+1
           n_atom = n_atom - 1
 
@@ -720,11 +727,11 @@ contains
         end if
 
       else if (mode == "comment") then
-        if (re(re_loc:re_loc) == '\') then
+        if (c == '\') then
           mode = "comment-escaped"
-        else if (re(re_loc:re_loc) == '[') then
+        else if (c == '[') then
           comment_bracket_count = comment_bracket_count + 1
-        else if (re(re_loc:re_loc) == ']') then
+        else if (c == ']') then
           comment_bracket_count = comment_bracket_count - 1
           if (comment_bracket_count == 0) mode = "normal"
         end if
@@ -732,6 +739,22 @@ contains
       else if (mode == "comment-escaped") then
         mode = "comment"
 
+      else if (mode == "submatch-name") then
+        if  ((c >= '0' .and. c <= '9') &
+        .or. (c >= 'a' .and. c <= 'z') &
+        .or. (c >= 'a' .and. c <= 'Z') &
+        .or. c == '-' .or. c == '_') then
+          submatch_name = trim(submatch_name) // c
+        else if (c == ':') then
+          mode = 'submatch-body'
+        else if (c == '>') then
+          mode = "normal"
+        end if
+
+      else if (mode == "submatch-body") then
+        if (c == '>') then
+          mode = "normal"
+        end if
       end if
 
       ! Go to the next character in the regex
