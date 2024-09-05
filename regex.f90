@@ -98,12 +98,10 @@ module regex
     type(frag), pointer ::  elem
   end type frag_stack
 
-  integer ::  submatch_pars(2, pf_stack_size, max_paren_depth)
-
 contains
 
   !------------------------------------------------------------------------------!
-    subroutine abort(error, regex, location)                                     !
+    subroutine throw_error(error, regex, location)                                     !
   !------------------------------------------------------------------------------!
   ! DESCRPTION                                                                   !
   !   Throw an error and abort the program                                       !
@@ -143,7 +141,7 @@ contains
 
      error stop
 
-   end subroutine abort
+   end subroutine throw_error
 
   !------------------------------------------------------------------------------!
     subroutine warn(error, regex, location)                                      !
@@ -253,7 +251,7 @@ contains
         case(n_space_ch)
           token = "\S   "
         case default
-          call abort("Unrecognised character" //  char(ch))
+          call throw_error("Unrecognised character" //  char(ch))
       end select
 
     end function token
@@ -360,7 +358,7 @@ contains
     new_list => null()
 
     allocate(new_list, stat=ierr)
-    if (ierr /= 0) call abort("Unable to allocate new_list")
+    if (ierr /= 0) call throw_error("Unable to allocate new_list")
 
     new_list%s    => outp
     new_list%side =  side
@@ -552,7 +550,7 @@ contains
         case(2)
           tmp_l%s%out2 => s
         case default
-          call abort("Unexpected value of side")
+          call throw_error("Unexpected value of side")
       end select
       call point_list(tmp_l, tmp_l%next)
     end do
@@ -603,7 +601,7 @@ contains
     pf = null_st
 
     ! If the regex won't fit in the pf list, abort
-    if (len_trim(re) > pf_buff_size/2) call abort("Regex too long", trim(re))
+    if (len_trim(re) > pf_buff_size/2) call throw_error("Regex too long", trim(re))
 
     ! Loop over characters in the regex
     do while (re_loc <= len_trim(re))
@@ -619,7 +617,7 @@ contains
             call enter_paren(track=.true.)
 
           case('|') ! We've found an OR operation
-            if (n_atom == 0) call abort("OR has no left hand side", re, re_loc)
+            if (n_atom == 0) call throw_error("OR has no left hand side", re, re_loc)
 
             ! Add all the current atoms to the postfix list and start a new alternate list
             n_atom = n_atom - 1
@@ -629,21 +627,21 @@ contains
             n_alt = n_alt + 1
 
           case (')') ! We've found a close bracket
-            if (par_loc == 1) call abort("Unmatched ')'", re, re_loc)
-            if (n_atom == 0)  call abort("Empty parentheses", re, re_loc)
+            if (par_loc == 1) call throw_error("Unmatched ')'", re, re_loc)
+            if (n_atom == 0)  call throw_error("Empty parentheses", re, re_loc)
 
             call exit_paren(track=.true.)
 
           case('*') ! We've found a STAR operation
-            if (n_atom == 0) call abort("Nothing to *", re, re_loc)
+            if (n_atom == 0) call throw_error("Nothing to *", re, re_loc)
             call push_atom(star_op)
 
           case('+') ! We've found a PLUS operation
-            if (n_atom == 0) call abort("Nothing to +", re, re_loc)
+            if (n_atom == 0) call throw_error("Nothing to +", re, re_loc)
             call push_atom(plus_op)
 
           case('?') ! We've found a QUESTION operation
-            if (n_atom == 0) call abort("Nothing to ?", re, re_loc)
+            if (n_atom == 0) call throw_error("Nothing to ?", re, re_loc)
             call push_atom(quest_op)
 
           case ('.') ! We've found and ANY character
@@ -700,7 +698,7 @@ contains
             escaped_chr = n_space_ch
 
           case default
-            call abort("Unrecognised escape character \" // re(re_loc:re_loc), re, re_loc)
+            call throw_error("Unrecognised escape character \" // re(re_loc:re_loc), re, re_loc)
         end select
 
         ! If there are already atoms, add a concat. operation and then add this character
@@ -740,7 +738,7 @@ contains
       re_loc = re_loc + 1
     end do
 
-    if (par_loc /= 1) call abort("I think you've got unmatched parentheses", re, re_loc)
+    if (par_loc /= 1) call throw_error("I think you've got unmatched parentheses", re, re_loc)
 
     ! Add any remaining atoms to the postfix list
     n_atom = n_atom - 1
@@ -790,7 +788,7 @@ contains
     subroutine enter_paren(track)
       logical :: track
 
-      if (par_loc > size(paren)) call abort("Too many embedded brackets!", re, re_loc)
+      if (par_loc > size(paren)) call throw_error("Too many embedded brackets!", re, re_loc)
 
       ! Concatinate this set of brackets with anything previous and add it to the postfix list
       if (n_atom > 1) call push_atom(cat_op)
@@ -913,16 +911,16 @@ contains
     ! Allocate and initalise the appropriate datastructures
     nfrags = 0
     allocate(allocated_frags(pf_stack_size), stat=ierr)
-    if (ierr /= 0) call abort("Unable to allocate frag stack")
+    if (ierr /= 0) call throw_error("Unable to allocate frag stack")
     allocate(stack(pf_stack_size),stat=ierr)
-    if (ierr /= 0) call abort("Unable to allocate stack")
+    if (ierr /= 0) call throw_error("Unable to allocate stack")
 
     do i = 1, pf_stack_size
       stack(i)%elem => null()
       allocated_frags(i)%elem => null()
     end do
 
-    if (nfa%states%side /= 0) call abort("Trying to build nfa with in-use states")
+    if (nfa%states%side /= 0) call throw_error("Trying to build nfa with in-use states")
 
     ! Allocate the Match and Null states for this NFA
     matchstate => new_state(match_st, null(), null())
@@ -1077,7 +1075,7 @@ contains
 
       new_state => null()
       allocate(new_state, stat=ierr)
-      if (ierr /= 0) call abort("Unable to allocate new_state")
+      if (ierr /= 0) call throw_error("Unable to allocate new_state")
       new_state%last_list = 0
       new_state%c = c
       new_state%out1 => out1
@@ -1164,7 +1162,7 @@ contains
     integer ::  istart, i, ierr
 
     allocate(l1(1:nfa%n_states), l2(1:nfa%n_states), stat=ierr)
-    if (ierr /= 0) call abort("Error allocating l1,l2 in run_nfa_fast")
+    if (ierr /= 0) call throw_error("Error allocating l1,l2 in run_nfa_fast")
 
     ! The match might not start on the first character of the string,
     !   test the NFA starting on each character until we find a match
@@ -1339,7 +1337,7 @@ contains
             case( match_st )
 
             case default
-              call abort("Unrecognised state " // achar(s%c))
+              call throw_error("Unrecognised state " // achar(s%c))
           end select
         else
           if (s%c == finish_ch) then
@@ -1563,7 +1561,7 @@ contains
           case(finish_ch)
 
           case default
-            call abort("Unrecognised state " // achar(s%c))
+            call throw_error("Unrecognised state " // achar(s%c))
         end select
       else
         select case(s%c)
@@ -1617,7 +1615,7 @@ contains
 
     istart = 1
 
-    if (len_trim(re) < 1) call abort("Regular expression cannot be of length 0")
+    if (len_trim(re) < 1) call throw_error("Regular expression cannot be of length 0")
     postfix = re_to_pf(trim(re))
     if(debug) call print_pf(postfix)
 
@@ -1663,7 +1661,7 @@ contains
 
     re_match_str = " "
 
-    if (len_trim(re) < 1) call abort("Regular expression cannot be of length 0")
+    if (len_trim(re) < 1) call throw_error("Regular expression cannot be of length 0")
     postfix = re_to_pf(trim(re))
     nfa = pf_to_nfa(postfix)
 
@@ -1707,7 +1705,7 @@ contains
 
     istart = 1
 
-    if (len_trim(re) < 1) call abort("Regular expression cannot be of length 0")
+    if (len_trim(re) < 1) call throw_error("Regular expression cannot be of length 0")
     postfix = re_to_pf(trim(re))
     nfa = pf_to_nfa(postfix)
 
@@ -1801,7 +1799,7 @@ contains
 
     re_replace = " "
 
-    if (len_trim(re) < 1) call abort("Regular expression cannot be of length 0")
+    if (len_trim(re) < 1) call throw_error("Regular expression cannot be of length 0")
     postfix = re_to_pf(trim(re))
     nfa = pf_to_nfa(postfix)
 

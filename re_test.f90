@@ -4,10 +4,9 @@ program re_test
 
   character(len=120)  ::  failed(6,1000)
   character(len=1000) :: re_str
-  integer ::  ifail, nfails, nskips, ntests
+  integer ::  ifail, nfails, ntests
 
   nfails = 0
-  nskips = 0
   ntests = 0
   failed = ""
 
@@ -203,11 +202,11 @@ program re_test
   print *, " "
   select case (ntests)
     case(0:9)
-      write(*,'(I1,A1,I1,A14)') ntests-nfails-nskips, '/', ntests, ' tests passed!'
+      write(*,'(I1,A1,I1,A14)') ntests-nfails, '/', ntests, ' tests passed!'
     case(10:99)
-      write(*,'(I2,A1,I2,A14)') ntests-nfails-nskips, '/', ntests, ' tests passed!'
+      write(*,'(I2,A1,I2,A14)') ntests-nfails, '/', ntests, ' tests passed!'
     case(100:999)
-      write(*,'(I3,A1,I3,A14)') ntests-nfails-nskips, '/', ntests, ' tests passed!'
+      write(*,'(I3,A1,I3,A14)') ntests-nfails, '/', ntests, ' tests passed!'
     case default
       write(*,*) "Really?! You have", ntests, "tests??"
   end select
@@ -283,18 +282,6 @@ contains
     ntests = ntests + 1
 
   end subroutine test
-
-  subroutine skip_test(re, str, succ, res)
-    character(len=*), intent(in)           :: re
-    character(len=*), intent(in)           :: str
-    logical,          intent(in)           :: succ
-    character(len=*), intent(in), optional :: res
-
-    write(*,'(A1)', advance="no") "s"
-    nskips = nskips + 1
-    ntests = ntests + 1
-
-  end subroutine skip_test
 
   subroutine print_failures(nfails, failed, f)
     integer,  intent(in)  ::  nfails
