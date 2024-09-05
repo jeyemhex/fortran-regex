@@ -99,9 +99,7 @@ As a result, I have not finished implementing all the features I would like. The
 Some features I would like to implement before I decide this is complete are:
 
   * Case insensitive searching
-  * A negation operation. I'm tempted to use `'c!'` as a "matches zero `c`'s"
-    operation, but I haven't really thought too much about the consequences of
-    that yet.
+  * A negation operation. 
   * More fine-grained match counting, e.g. `'ab{2:3}c'` to only match `abbc` or `abbbc`
 
   * Some way of referring back to bracketed expressions, e.g. after matching `'a(bc)((d)e)'`

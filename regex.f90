@@ -31,30 +31,30 @@ module regex
 
   ! Special NFA states
   integer,  parameter ::  null_st      = -1  ! denotes a NULL node in the nfa
-  integer,  parameter ::  split_st     = 256 ! denotes a SPLIT node in the nfa
-  integer,  parameter ::  match_st     = 257 ! denotes a MATCH node in the nfa
+  integer,  parameter ::  split_st     = -256 ! denotes a SPLIT node in the nfa
+  integer,  parameter ::  match_st     = -257 ! denotes a MATCH node in the nfa
 
   ! /re/ and postscript operators
-  integer,  parameter ::  star_op      = 301 ! * operator (0 or more)
-  integer,  parameter ::  plus_op      = 302 ! + operator (1 or more)
-  integer,  parameter ::  quest_op     = 303 ! ? operator (0 or 1)
-  integer,  parameter ::  or_op        = 304 ! | operator (a or b)
-  integer,  parameter ::  cat_op       = 305 ! . operator (cats 2 fragments)
-  integer,  parameter ::  open_par_ch  = 306 ! ( operator (for constructing match list)
-  integer,  parameter ::  close_par_ch = 307 ! ) operator (for constructing match list)
+  integer,  parameter ::  star_op      = -301 ! * operator (0 or more)
+  integer,  parameter ::  plus_op      = -302 ! + operator (1 or more)
+  integer,  parameter ::  quest_op     = -303 ! ? operator (0 or 1)
+  integer,  parameter ::  or_op        = -304 ! | operator (a or b)
+  integer,  parameter ::  cat_op       = -305 ! . operator (cats 2 fragments)
+  integer,  parameter ::  open_par_ch  = -306 ! ( operator (for constructing match list)
+  integer,  parameter ::  close_par_ch = -307 ! ) operator (for constructing match list)
 
   ! NFA special matches
-  integer,  parameter ::  any_ch       = 401 ! .  match (anything)
-  integer,  parameter ::  alpha_ch     = 402 ! \a match ([a..z]|[A..Z])
-  integer,  parameter ::  numeric_ch   = 403 ! \d match ([0..9])
-  integer,  parameter ::  word_ch      = 404 ! \w match (\d|\a|_)
-  integer,  parameter ::  space_ch     = 405 ! \s match (" "|\t)
-  integer,  parameter ::  n_alpha_ch   = 406 ! \A match (anything but \a)
-  integer,  parameter ::  n_numeric_ch = 407 ! \D match (anything but \d)
-  integer,  parameter ::  n_word_ch    = 408 ! \W match (anything but \w)
-  integer,  parameter ::  n_space_ch   = 409 ! \S match (anything but \s)
-  integer,  parameter ::  start_ch     = 410 ! ^  match (start of the string)
-  integer,  parameter ::  finish_ch    = 411 ! $  match (end of the string)
+  integer,  parameter ::  any_ch       = -401 ! .  match (anything)
+  integer,  parameter ::  alpha_ch     = -402 ! \a match ([a..z]|[A..Z])
+  integer,  parameter ::  numeric_ch   = -403 ! \d match ([0..9])
+  integer,  parameter ::  word_ch      = -404 ! \w match (\d|\a|_)
+  integer,  parameter ::  space_ch     = -405 ! \s match (" "|\t)
+  integer,  parameter ::  n_alpha_ch   = -406 ! \A match (anything but \a)
+  integer,  parameter ::  n_numeric_ch = -407 ! \D match (anything but \d)
+  integer,  parameter ::  n_word_ch    = -408 ! \W match (anything but \w)
+  integer,  parameter ::  n_space_ch   = -409 ! \S match (anything but \s)
+  integer,  parameter ::  start_ch     = -410 ! ^  match (start of the string)
+  integer,  parameter ::  finish_ch    = -411 ! $  match (end of the string)
 
   logical,  parameter :: debug = .false.
 
