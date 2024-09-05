@@ -1,0 +1,18 @@
+name = "regex"
+version = "0.4.0"
+license = "LGPL"
+author = "Edward Higgins"
+maintainer = "ed.j.higgins@gmail.com"
+copyright = "Copyright 2024, Edward Higgins"
+[build]
+auto-executables = true
+auto-tests = true
+auto-examples = true
+module-naming = false
+[install]
+library = true
+[fortran]
+implicit-typing = false
+implicit-external = false
+source-form = "free"
+
