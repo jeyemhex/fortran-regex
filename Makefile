@@ -1,15 +1,16 @@
 FC      = gfortran
 #EJH# FCFLAGS = -O0 -g -fcheck=all -fno-realloc-lhs -Wall -std=f2003
 FCFLAGS = -O0 -g -fcheck=all -fno-realloc-lhs -Wall
-FLFLAGS = 
 
-all: re_example re_test
+all: re_example re_test shakespeare_test
 
 re_example: re_example.o regex.o
 
 re_example.o: regex.o
 
 re_test: re_test.o regex.o
+
+shakespeare_test: shakespeare_test.o regex.o
 
 re_test.o: regex.o 
 
@@ -19,11 +20,12 @@ re_test.o: regex.o
 %.o: %.f90
 	$(FC) $(FCFLAGS) -c $<
 
-check: re_test
+test: re_test
 	./re_test
+	./shakespeare_test
 
 clean:
-	rm -rf *.o *.mod re_test re_example
+	rm -rf *.o *.mod re_test re_example shakespeare_test
 
 again:
 	$(MAKE) clean
