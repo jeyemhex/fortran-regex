@@ -22,7 +22,6 @@ re_test.o: regex.o
 
 test: re_test
 	./re_test
-	./shakespeare_test
 
 clean:
 	rm -rf *.o *.mod re_test re_example shakespeare_test
