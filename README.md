@@ -89,6 +89,8 @@ readability of the resulting regular expressions, and was borrowed from Perl's
  * `'[abc]'` matches `a`, `b` or `c`. This works for any literal character other
      than `'['` and `']'` themselves.
 
+ *  `![ abc ]` defines an inline comment within the regex.
+
 For more examples of the syntax, see `re_test.f90`.
 
 ### NOT YET IMPLEMENTED

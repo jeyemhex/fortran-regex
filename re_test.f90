@@ -3,6 +3,7 @@ program re_test
   implicit none
 
   character(len=120)  ::  failed(6,1000)
+  character(len=1000) :: re_str
   integer ::  ifail, nfails, nskips, ntests
 
   nfails = 0
@@ -156,6 +157,37 @@ program re_test
   call test('[({]5[)}]',                        'array{5}',           .true., '{5}'             )
   call test('[({]5[)}]',                        'array[5]',           .false.                   )
   call test('(br[ea]d) \s and \s  (butt[oe]r)', 'my brad and buttor', .true., 'brad and buttor' )
+
+  ! multi-line regex's and comments 
+  re_str = 'a &
+           &b'
+  call test(re_str, 'abc', .true., 'ab')
+
+  re_str = " &
+  &  a       &
+  &  b       &
+  &"
+  call test(re_str, 'abc', .true., 'ab')
+  
+  re_str = "                                           &
+  &  (\+|-)?                ![ Optional +/- sign ]     &
+  &  \d+                    ![ Integer part ]          &
+  &  (\.\d*)?               ![ Optional decimal part ] &
+  &  ((e|E) (\+|-)? \d+)?   ![ Optional exponent ]     &
+  &"
+  call test(re_str , "the number is -5.2e-6" , .true. , "-5.2e-6")
+
+  re_str = "bring \s ![ me \s [ae]ver ] me \s aver"
+  call test(re_str , "bring me aver" , .true. , "bring me aver")
+  call test(re_str , "bring me ever" , .false. )
+
+  re_str = "bring \s ![ me \s a \s \]  not \s ] me \s aver"
+  call test(re_str , "bring me aver" , .true. , "bring me aver")
+  call test(re_str , "bring me a ]" , .false. )
+  call test(re_str , "bring me a ] not me aver" , .false. )
+    
+
+
 
 !-[PROPOSED FEATURE TESTS]--------------------------------------------------------------------------
 

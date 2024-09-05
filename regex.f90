@@ -589,7 +589,8 @@ contains
     type(paren_list) :: paren(max_paren_depth)  ! List of opened parens at a given point
     integer          :: par_loc                 ! Current position in the paren list
     integer          :: escaped_chr             ! The charcter which has been escaped
-    character(len=8) :: mode
+    character(len=16):: mode
+    integer          :: comment_bracket_count
 
     ! Initialise key variables
     par_loc = 1
@@ -660,6 +661,11 @@ contains
           case(' ', achar(9)) ! We've found whitespace in the regex
             ! Do nothing, ignore whitespace in the regex
 
+          case('!') ! We've found a comment
+            comment_bracket_count = 0
+            mode = "comment"
+            ! Do nothing, ignore whitespace in the regex
+
           case ('[')
             mode = "group"
             call enter_paren(track=.false.)
@@ -674,7 +680,7 @@ contains
 
         ! Deal with escaped characters
         select case(re(re_loc:re_loc))
-          case('(','|',')','[',']','*','+','?','\','.','^','$',' ',achar(9))
+          case('(','|',')','[',']','*','+','?','\','.','^','$','!',' ',achar(9),achar(10))
             escaped_chr = iachar(re(re_loc:re_loc))
           case('a')
             escaped_chr = alpha_ch
@@ -714,6 +720,20 @@ contains
           call exit_paren(track = .false.)
           mode = "normal"
         end if
+
+      else if (mode == "comment") then
+        if (re(re_loc:re_loc) == '\') then
+          mode = "comment-escaped"
+        else if (re(re_loc:re_loc) == '[') then
+          comment_bracket_count = comment_bracket_count + 1
+        else if (re(re_loc:re_loc) == ']') then
+          comment_bracket_count = comment_bracket_count - 1
+          if (comment_bracket_count == 0) mode = "normal"
+        end if
+
+      else if (mode == "comment-escaped") then
+        mode = "comment"
+
       end if
 
       ! Go to the next character in the regex
