@@ -24,6 +24,9 @@ module nfa_mod
     type(state),    pointer :: head             ! Starting state for the NFA
     type(ptr_list), pointer :: states => null() ! A list of all the states in this nfa
     integer                 :: n_states         ! Number of states in the NFA
+  contains
+    procedure, public :: init => allocate_nfa
+    procedure, public :: free => deallocate_nfa
   end type nfa_type
 
   ! State in the NFA
@@ -1060,7 +1063,7 @@ contains
   ! AUTHORS                                                                      !
   !   Edward Higgins, 2016-12-29                                                 !
   !------------------------------------------------------------------------------!
-    type(nfa_type), intent(inout) :: nfa
+    class(nfa_type), intent(inout) :: nfa
 
     nfa%head => null()
     nfa%states => null()
@@ -1082,7 +1085,7 @@ contains
   ! AUTHORS                                                                      !
   !   Edward Higgins, 2016-12-29                                                 !
   !------------------------------------------------------------------------------!
-    type(nfa_type), intent(inout) :: nfa
+    class(nfa_type), intent(inout) :: nfa
 
     call deallocate_list(nfa%states, keep_states=.false., n_states = nfa%n_states)
     nfa%head => null()

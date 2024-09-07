@@ -21,12 +21,17 @@ module regex
   use states_mod
   use postfix_mod
   use nfa_mod
+  use nfa_table_mod
   implicit none
 
   private
 
   public :: re_match, re_match_str, re_split, re_replace
 
+  type, public :: compiled_regex
+    character(len=:), allocatable :: regex_string
+    type(nfa_table)               :: patterns
+  end type compiled_regex
 
   logical,  parameter :: debug = .false.
 
