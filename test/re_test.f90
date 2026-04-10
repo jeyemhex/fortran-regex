@@ -192,11 +192,11 @@ program re_test
 
 
 ! Proposed tests for defined captures
-!  call test('<integer: \d+> <integer>', 'there were 52 cats', .true. '52')
-!  call test('<sign:     \+|-              > &
-!                 &<decimal:  \d (\.\d*)?       > &
-!                 &<exponent: (e|E) <sign>? \d+ > &
-!                 &<sign>? <decimal> <exponent>?', 'the numebr is -5.2e-6', .true. '-5.2e-6')
+  call test('<integer: \d+> <integer>', 'there were 52 cats', .true., '52')
+  call test('<sign: \+|- >                  &
+           & <decimal: \d (\.\d*)? >        &
+           & <exponent: (e|E) <sign>? \d+ > &
+           & <sign>? <decimal> <exponent>?', 'the number is -5.2e-6', .true., '-5.2e-6')
 
 
   print *, " "

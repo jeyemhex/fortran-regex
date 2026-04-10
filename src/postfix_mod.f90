@@ -26,6 +26,10 @@ module postfix_mod
     integer ::  n_alt
   end type paren_list
 
+  character(len=64) :: named_matches(512)
+  character(len=64) :: submatch_name
+  integer           :: submatch_id
+
 contains
   !------------------------------------------------------------------------------!
     function build_postfix(re) result(pf)                                         !
@@ -70,13 +74,15 @@ contains
 
     pf = null_st
 
+    named_matches = ""
+
     ! If the regex won't fit in the pf list, abort
     if (len_trim(re) > pf_buff_size/2) call throw_error("Regex too long", trim(re))
 
     ! Loop over characters in the regex
     do while (re_loc <= len_trim(re))
       c = re(re_loc:re_loc)
-      if (mode == "normal") then
+      if (mode == "normal" .or. mode == "submatch-body") then
 
         ! What is the current character?
         select case(c)
@@ -143,17 +149,32 @@ contains
             mode = "submatch-name"
             submatch_name = ""
 
+          case ('>') ! We've found the end of a submatch body
+            if (submatch_name /= "") then
+              if (c == '>') then
+                call exit_paren(track=.false.)
+                submatch_id = get_submatch_id(submatch_name)
+                print *, "Setting submatch " //trim(submatch_name) //" to id", submatch_id
+                call push_atom(def_op - 2*submatch_id)
+
+                mode = "normal"
+              end if
+            else
+              call throw_error("Found '>' with no matching '<'", re, re_loc)
+            end if
+
           case default ! We've found a regular charcter
             ! If there are already atoms, add a concat. operation and then add this character
             if (n_atom > 1) call push_atom(cat_op)
             call push_atom(iachar(c))
 
         end select
+
       else if (mode == "escaped") then
 
         ! Deal with escaped characters
         select case(c)
-          case('(','|',')','[',']','*','+','?','\','.','^','$','!',' ',achar(9),achar(10))
+        case('(','|',')','[',']','*','+','?','\','.','^','$','!',' ',achar(9),achar(10),'<','>',':')
             escaped_chr = iachar(c)
           case('a')
             escaped_chr = alpha_ch
@@ -213,16 +234,21 @@ contains
         .or. (c >= 'a' .and. c <= 'Z') &
         .or. c == '-' .or. c == '_') then
           submatch_name = trim(submatch_name) // c
+
         else if (c == ':') then
+          submatch_id = set_submatch_id(submatch_name)
+          call enter_paren(track=.false.)
           mode = 'submatch-body'
+
         else if (c == '>') then
+          submatch_id = get_submatch_id(submatch_name)
+          call push_atom(call_op - 2*submatch_id)
+
           mode = "normal"
+        else
+          call throw_error("Invalid submatch definition or call")
         end if
 
-      else if (mode == "submatch-body") then
-        if (c == '>') then
-          mode = "normal"
-        end if
       end if
 
       ! Go to the next character in the regex
@@ -319,6 +345,33 @@ contains
       if (track) call push_atom(close_par_ch)
 
     end subroutine exit_paren
+
+    function get_submatch_id(str) result(id)
+      character(len=*), intent(in) :: str
+
+      integer :: id
+
+      do id=1, size(named_matches)
+        if (named_matches(id) == str) return
+      end do
+
+      call throw_error("Submatch name not found: '"//trim(str)//"'", re, re_loc)
+    end function get_submatch_id
+
+    function set_submatch_id(str) result(id)
+      character(len=*), intent(in) :: str
+
+      integer :: id
+
+      do id=1, size(named_matches)
+        if (named_matches(id) == "") then
+          named_matches(id) = trim(str)
+          return
+        end if
+      end do
+
+      call throw_error("No space for submatch: '"//trim(str)//"'", re, re_loc)
+    end function set_submatch_id
 
   end function build_postfix
 

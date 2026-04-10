@@ -40,6 +40,10 @@ module states_mod
   integer,  parameter ::  start_ch     = -410 ! ^  match (start of the string)
   integer,  parameter ::  finish_ch    = -411 ! $  match (end of the string)
 
+  ! Named regexes
+  integer, parameter  :: def_op        = -500 ! plus 2 * the named regex id
+  integer, parameter  :: call_op       = -501 ! plus 2 * the named regex id
+
 contains
   !------------------------------------------------------------------------------!
     function state_str(ch) result(token)                                         !
@@ -107,6 +111,12 @@ contains
           token = "\W   "
         case(n_space_ch)
           token = "\S   "
+        case(:def_op)
+          if (mod(ch,2) == 0) then
+            token = "DEF " // achar(-(ch-def_op)/2 + iachar('1'))
+          else
+            token = "CLL " // achar(-(ch-call_op)/2 + iachar('1'))
+          end if
         case default
           call throw_error("Unrecognised character" //  char(ch))
       end select
